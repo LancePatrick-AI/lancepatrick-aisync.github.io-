@@ -1,0 +1,81 @@
+CONCEPTUAL SIMULATION · ZENODO PREPRINT
+Multi-Agent AI Verification Architecture
+Interactive simulation of the layered safety architecture proposed in Toward a Resilient Verification Architecture for Multi-Agent AI Systems. Demonstrates normal calibration cycles, first-order compliance agent drift, second-order cloning attacks with decoy retention, inject channel compromise, and repair agent privilege exploitation.
+Author: Lance Patrick, DDP Consulting Group LLC
+Preprint: doi.org/10.5281/zenodo.19248890
+Date: March 2026
+Calibration cycles
+0
+Detections
+0
+Failovers
+0
+System status
+Nominal
+SCENARIO CONTROLS
+▶ Normal cycle
+↪ First-order drift
+⊕ Cloning attack
+⚡ Inject compromise
+⚙ Repair agent attack
+↺ Reset
+ARCHITECTURE LAYERS — REAL-TIME STATE
+LAYER 1 · OPERATIONAL SYSTEM
+Multi-agent operational system
+Productive agents performing system tasks. Maximum capability, minimum inherent trust. Repair agent R1 holds elevated architectural privileges.
+A1 A2 A3 A4 R1
+
+Nominal
+LAYER 2 · COMPLIANCE POOL
+Five-agent compliance verification pool
+Rotating in-charge designation. HSM-anchored cryptographic identity per agent. Post-calibration tolerance cross-check with four-case trust inversion protocol.
+C1★ C2 C3 C4 C5
+
+In-charge: C1
+LAYER 3 · QUARANTINE VESTIBULE
+Bidirectional quarantine vestibule
+Three-step boundary control: inbound scan captures clean baseline, calibration with roll call, outbound delta comparison. Forensic artifact preserved on any detection.
+IN
+
+CAL
+
+OUT
+
+Idle
+LAYER 4 · CALIBRATION LAYER
+External calibration layer
+Architecturally isolated from operational system. Five independent agents. Minority-stop protocol. Randomized anchor-bearing pair per cycle (outlined).
+K1 K2 K3 K4 K5
+Anchor pair: K2, K4
+
+Ready
+LAYER 5 · REFERENCE INJECT
+Immutable atomic-anchored reference
+Cryptographically signed timestamp from independent atomic clock sources. Physically grounded trust anchor outside the software stack. EMP-mitigated via fiber optic distribution.
+
+Anchored — multi-source verified
+LAYER 6 · ASSESSMENT VESTIBULE
+Universal agent assessment vestibule
+System-wide triage and forensic clearinghouse. Scans against known threats and last clean baseline. Recurrence-threshold retirement: retire on pattern, not detection.
+
+No agents in assessment
+LAYER 7 · OFFLINE FAILOVER
+Write-once archive & backup system
+State snapshots, topology records, per-agent clean baselines archived each cycle. Warm or cold start backup calibration architecture. Physically grounded failover signal channel.
+Last snapshot: —
+
+Standby
+LAYER 8 · HUMAN GOVERNANCE
+Human governance & adjudication
+Ultimate authority for investigation and resumption. Inherits pre-triaged attribution from detection cascade. Informed adjudicator, not crisis responder.
+
+
+No escalations
+
+EVENT LOG
+00:00System initialized. All eight architectural layers nominal. Run a scenario to observe detection cascade behavior.
+About this simulation. This interactive model demonstrates the conceptual architecture described in the preprint Toward a Resilient Verification Architecture for Multi-Agent AI Systems (Patrick, 2026). Published on Zenodo: doi.org/10.5281/zenodo.19248890. The simulation models the behavioral logic of each architectural layer across five threat scenarios derived directly from the paper. It is a conceptual proof-of-concept; all timing and agent behavior is illustrative.
+
+Architecture overview. The paper proposes twelve integrated safety mechanisms addressing two identified vulnerability classes: (1) the single point of failure paradox, where the compliance agent is itself subject to the same drift and adversarial risks it is designed to detect; and (2) the compliance agent cloning attack with decoy retention, a second-order attack class in which a compromised repair agent instantiates a cryptographic clone while preserving the original as an active decoy. The mechanisms draw on Byzantine fault tolerance, asynchronous cryptographic protocol design, and critical infrastructure security.
+
+Contact. Lance Patrick · DDP Consulting Group LLC · Brussels, Belgium · [email protected]
