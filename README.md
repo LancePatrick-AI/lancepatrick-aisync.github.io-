@@ -46,7 +46,7 @@ A seven-layer resilient verification architecture addressing the single point of
 This work is conducted in collaboration with multiple AI agents for various aspects of research and project creation on a project-by-project dependent basis. This serves as the attribution and diligence statement for all documents referred to this repository unless specified otherwise in the document or file itself.
 
 For academic correspondence, collaboration inquiries, or professional engagement:  
-[lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company) · [LinkedIn](https://www.linkedin.com/in/lance-patrick1)
+[lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company) · [LinkedIn](https://www.linkedin.com/in/lancepatrick1)
 
 ---
 
