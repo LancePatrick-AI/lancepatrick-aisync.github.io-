@@ -1,6 +1,6 @@
-# lancepatrick-aisync.github.io-
+**lancepatrick-aisync.github.io-**
+
 AI Security, Verification &amp; Optimization Research
-# AI Security, Verification & Optimization Research
 
 **Lance Patrick** — DDP Consulting Group LLC  
 Brussels, Belgium · [lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company)
@@ -32,8 +32,8 @@ Research here spans conceptual architecture, formal threat modeling, interactive
 
 A seven-layer resilient verification architecture addressing the single point of failure paradox in compliance-agent architectures and a novel second-order attack class — the compliance agent cloning attack with decoy retention. Includes formal system and adversary models, theorem-style safety and containment guarantees, and an interactive browser-based simulation.
 
-- 📄 Published preprint (Zenodo): [https://doi.org/10.5281/zenodo.19248890](https://doi.org/10.5281/zenodo.19248890)
-- 🖥️ Interactive simulation: [`multi-agent-verification/simulation/`](./multi-agent-verification/simulation/)
+- Published preprint (Zenodo): [https://doi.org/10.5281/zenodo.19248890](https://doi.org/10.5281/zenodo.19248890)
+- Interactive simulation: [`multi-agent-verification/simulation/`](./multi-agent-verification/simulation/)
 
 ---
 
