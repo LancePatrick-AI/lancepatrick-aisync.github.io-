@@ -32,6 +32,7 @@ A seven-layer resilient verification architecture addressing the single point of
 
 -  Published preprint (Zenodo): [https://doi.org/10.5281/zenodo.19248890](https://doi.org/10.5281/zenodo.19248890)
 -  Interactive simulation 1: [https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation.html](https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation.html)
+-  Interactive simulation 2: [https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation_2.html](https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation_2.html)
 
 ---
 
