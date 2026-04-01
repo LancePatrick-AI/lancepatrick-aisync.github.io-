@@ -1,6 +1,5 @@
-**lancepatrick-aisync.github.io-**
-
-AI Security, Verification &amp; Optimization Research
+# lancepatrick-aisync.github.io-
+AI Security, Verification & Optimization Research
 
 **Lance Patrick** — DDP Consulting Group LLC  
 Brussels, Belgium · [lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company)
@@ -32,8 +31,8 @@ Research here spans conceptual architecture, formal threat modeling, interactive
 
 A seven-layer resilient verification architecture addressing the single point of failure paradox in compliance-agent architectures and a novel second-order attack class — the compliance agent cloning attack with decoy retention. Includes formal system and adversary models, theorem-style safety and containment guarantees, and an interactive browser-based simulation.
 
-- Published preprint (Zenodo): [https://doi.org/10.5281/zenodo.19248890](https://doi.org/10.5281/zenodo.19248890)
-- Interactive simulation: [`multi-agent-verification/simulation/`](./multi-agent-verification/simulation/)
+- 📄 Published preprint (Zenodo): [https://doi.org/10.5281/zenodo.19248890](https://doi.org/10.5281/zenodo.19248890)
+- 🖥️ Interactive simulation: [https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation.html](https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/MultiAgent_Verification_Simulation.html)
 
 ---
 
@@ -46,7 +45,7 @@ A seven-layer resilient verification architecture addressing the single point of
 This work is conducted in collaboration with multiple AI agents for various aspects of research and project creation on a project-by-project dependent basis. This serves as the attribution and diligence statement for all documents referred to this repository unless specified otherwise in the document or file itself.
 
 For academic correspondence, collaboration inquiries, or professional engagement:  
-[lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company) · [LinkedIn](https://www.linkedin.com/in/lancepatrick1)
+[lance.patrick@ddpllc.company](mailto:lance.patrick@ddpllc.company) · [LinkedIn](https://www.linkedin.com/in/lancepatrick1/)
 
 ---
 
