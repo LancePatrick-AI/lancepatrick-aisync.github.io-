@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Simulation — Resilient Verification Architecture for Multi-Agent AI Systems</title>
+<meta name="description" content="Interactive animated simulation of the nine-layer verification architecture for multi-agent AI systems, featuring calibration vestibule, compliance pool, cloning attack detection, and failover protocols.">
+<meta name="author" content="Lance Patrick">
+<meta name="keywords" content="multi-agent AI, verification architecture, security, calibration vestibule, compliance agents, cloning attack, minority-stop protocol">
+<meta property="og:title" content="Resilient Verification Architecture — Interactive Simulation">
+<meta property="og:description" content="Animated simulation of the calibration cycle, threat detection, and failover protocols described in Patrick (2025).">
+<meta property="og:type" content="website">
+<meta name="citation_title" content="Toward a Resilient Verification Architecture for Multi-Agent AI Systems">
+<meta name="citation_author" content="Patrick, Lance">
+<meta name="citation_doi" content="10.5281/zenodo.15055582">
+<meta name="citation_year" content="2025">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#1a1a2e;color:#e0e0e0;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* ─── Header ─── */
+.header{text-align:center;padding:6px 12px;background:#16213e;border-bottom:1px solid #0f3460}
+.header h1{font-size:16px;background:linear-gradient(135deg,#3b82f6,#10b981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header .sub{font-size:10px;color:#6b7280;margin-top:1px}
+.header .cite{font-size:9px;color:#4b5563;margin-top:2px}
+.header .cite a{color:#6366f1;text-decoration:none}
+.header .cite a:hover{text-decoration:underline}
+
+/* ─── Main layout ─── */
+.body-area{flex:1;display:flex;overflow:hidden}
+.chart{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:5px 8px;overflow:hidden}
+
+/* ─── Flowchart boxes ─── */
+.fc-row{display:flex;align-items:stretch;width:100%;max-width:860px;gap:6px;justify-content:center}
+.fc-box{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:5px 8px;position:relative;display:flex;flex-direction:column}
+.fc-box .box-title{font-size:10px;font-weight:700;margin-bottom:1px}
+.fc-box .box-desc{font-size:8px;color:#94a3b8;line-height:1.2}
+.fc-box .agent-area{min-height:30px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;justify-content:center;margin-top:auto;padding:3px;background:rgba(255,255,255,0.03);border-radius:3px}
+
+/* Pool colors */
+.pool-op{border-top:3px solid #3b82f6;flex:1}
+.pool-comp{border-top:3px solid #10b981;flex:1}
+.pool-cal{border-top:3px solid #8b5cf6;flex:1}
+
+/* Step colors */
+.fc-arrow{text-align:center;color:#10b981;font-size:10px;line-height:10px;width:100%;max-width:860px}
+.step-1-box{border-left:3px solid #f59e0b;flex:1}
+.step-2-box{border-left:3px solid #3b82f6;flex:1}
+.step-3-box{border-left:3px solid #8b5cf6;flex:1}
+.step-clear-box{border-left:3px solid #10b981;flex:1;background:#1a2e1a}
+.step-assess-box{border-left:3px solid #f59e0b;flex:1;background:#2d1f1b}
+
+/* Detection branch boxes */
+.det-box{width:160px;background:#2d1b1b;border:1px solid #7f1d1d;border-radius:5px;padding:4px 6px;font-size:8px;color:#fca5a5;flex-shrink:0;display:none}
+.det-box .det-title{font-weight:700;color:#ef4444;font-size:9px}
+.det-arrow-r{color:#ef4444;font-size:9px;font-weight:700;flex-shrink:0;display:flex;align-items:center;white-space:nowrap}
+
+/* ─── Agent circles ─── */
+.agent{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;position:relative;flex-shrink:0;transition:all 0.3s}
+.agent.operational{background:#3b82f6}
+.agent.repair{background:#f97316}
+.agent.compliance{background:#10b981}
+.agent.calibration{background:#8b5cf6}
+.agent.compromised{background:#ef4444!important;animation:pulse-red 0.8s infinite}
+.agent.isolated{background:#991b1b!important;opacity:0.7}
+.agent.clone{background:#dc2626;border:2px dashed #fca5a5}
+.agent.incharge{box-shadow:0 0 0 2px #fbbf24}
+.agent.anchor{border:2px dashed #c084fc}
+.agent-star{position:absolute;top:-5px;right:-4px;font-size:8px;color:#fbbf24;line-height:1}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 4px #ef4444}50%{box-shadow:0 0 12px #ef4444}}
+@keyframes pulse-heartbeat{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* Scan / block highlights on step boxes */
+.scanning{box-shadow:inset 0 0 10px rgba(59,130,246,0.4);border-color:#3b82f6!important}
+.blocked{box-shadow:inset 0 0 10px rgba(239,68,68,0.4)!important;border-color:#ef4444!important}
+
+/* ─── Right log / status panel ─── */
+.log-panel{width:210px;display:flex;flex-direction:column;border-left:1px solid #0f3460;background:#0f172a}
+.log-panel .log-title{font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;padding:3px 6px;background:#16213e;border-bottom:1px solid #0f3460}
+.log-scroll{flex:1;overflow-y:auto;padding:2px 5px;font-family:"Courier New",monospace;font-size:9px}
+.log-entry{padding:1px 0;display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.02)}
+.log-ts{color:#6b7280;min-width:30px;font-size:8px}
+.log-entry.ok{color:#10b981}.log-entry.warn{color:#f59e0b}.log-entry.alert{color:#ef4444}.log-entry.info{color:#3b82f6}
+.status-panel{padding:5px 6px;background:#16213e;border-bottom:1px solid #0f3460;display:flex;flex-direction:column;gap:3px;font-size:9px}
+.status-panel .row{display:flex;justify-content:space-between}
+.status-panel .label{color:#6b7280}
+.status-panel .val{color:#e0e0e0;font-weight:700}
+.status-badge{padding:1px 4px;border-radius:2px;font-size:8px;font-weight:700;text-transform:uppercase}
+.status-badge.ok{background:#065f46;color:#6ee7b7}
+.status-badge.warn{background:#78350f;color:#fcd34d}
+.status-badge.alert{background:#7f1d1d;color:#fca5a5}
+.gov-area{padding:3px 6px;font-size:8px;color:#ef4444;display:flex;flex-direction:column;gap:1px}
+
+/* Legend */
+.legend{padding:4px 6px;background:#16213e;border-bottom:1px solid #0f3460;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.legend-item{display:flex;align-items:center;gap:3px;font-size:8px;color:#94a3b8}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ─── Controls ─── */
+.controls{display:flex;gap:5px;align-items:center;padding:4px 10px;background:#16213e;border-top:1px solid #0f3460;flex-wrap:wrap;justify-content:center}
+.btn{padding:4px 9px;border:1px solid #334155;border-radius:4px;background:#1e293b;color:#e0e0e0;font-size:10px;cursor:pointer;transition:background 0.2s,box-shadow 0.2s}
+.btn:hover{background:#334155;box-shadow:0 0 6px rgba(59,130,246,0.3)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.btn.reset{border-color:#f59e0b;color:#f59e0b}
+.speed-ctrl{display:flex;align-items:center;gap:3px;font-size:9px;color:#94a3b8}
+.speed-ctrl input{width:55px;accent-color:#3b82f6}
+
+/* ─── Footer ─── */
+.footer{text-align:center;font-size:8px;color:#4b5563;padding:3px 8px;background:#16213e;border-top:1px solid #0f3460;line-height:1.4}
+.footer a{color:#6366f1;text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+/* ─── Scrollbar ─── */
+.log-scroll::-webkit-scrollbar{width:6px}
+.log-scroll::-webkit-scrollbar-track{background:transparent}
+.log-scroll::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Resilient Verification Architecture for Multi-Agent AI Systems</h1>
+  <div class="sub">Interactive Calibration Cycle &amp; Threat Detection Simulation</div>
+  <div class="cite">L. Patrick (2025) · <a href="https://doi.org/10.5281/zenodo.15055582" target="_blank" rel="noopener">DOI: 10.5281/zenodo.15055582</a></div>
+</div>
+<div class="body-area">
+  <div class="chart" id="chartArea">
+    <!-- Agent Pool Row -->
+    <div class="fc-row">
+      <div class="fc-box pool-op"><div class="box-title" style="color:#3b82f6">OPERATIONAL POOL</div><div class="box-desc">Agents A1–A4 + Repair Agent R1</div><div class="agent-area" id="poolOp"></div></div>
+      <div class="fc-box pool-comp"><div class="box-title" style="color:#10b981">COMPLIANCE POOL</div><div class="box-desc">Agents C1–C5 · ★ = in-charge</div><div class="agent-area" id="poolComp"></div></div>
+      <div class="fc-box pool-cal"><div class="box-title" style="color:#8b5cf6">CALIBRATION POOL</div><div class="box-desc">Agents K1–K5 · ◎ = anchor-bearing</div><div class="agent-area" id="poolCal"></div></div>
+    </div>
+    <div class="fc-arrow">↓ Cx presents at vestibule from operational system</div>
+
+    <!-- Step 1 -->
+    <div class="fc-row">
+      <div class="fc-box step-1-box" id="step1">
+        <div class="box-title" style="color:#f59e0b">STEP 1 — INBOUND SCAN</div>
+        <div class="box-desc">① Threat signature scan ② State comparison against archived baseline<br>→ On clearance: verified clean snapshot captured (outbound reference)</div>
+        <div class="agent-area" id="area1"></div>
+      </div>
+      <div class="det-arrow-r">NOT CLEARED →</div>
+      <div class="det-box" id="det1"><div class="det-title">DETECTION</div>Isolate + minority-stop<br>No calibration contact<br>Agent quarantined as forensic artifact</div>
+    </div>
+    <div class="fc-arrow">↓ CLEARED</div>
+
+    <!-- Step 2 -->
+    <div class="fc-row">
+      <div class="fc-box step-2-box" id="step2">
+        <div class="box-title" style="color:#3b82f6">STEP 2 — CALIBRATION + CONCURRENT ROLL CALL</div>
+        <div class="box-desc">Cx absence from operational confirmed · Inject from concordant anchor-bearing K agent<br>Signed identity challenge broadcast to ALL agents · Mismatch → MINORITY STOP</div>
+        <div class="agent-area" id="area2"></div>
+      </div>
+      <div class="det-arrow-r">NOT CLEARED →</div>
+      <div class="det-box" id="det2"><div class="det-title">DETECTION</div>Clone detected via roll call<br>Minority-stop fires immediately<br>System halted · Failover activates</div>
+    </div>
+    <div class="fc-arrow">↓ CLEARED</div>
+
+    <!-- Step 3 -->
+    <div class="fc-row">
+      <div class="fc-box step-3-box" id="step3">
+        <div class="box-title" style="color:#8b5cf6">STEP 3 — OUTBOUND DUAL SCAN</div>
+        <div class="box-desc"><b>Function 1:</b> Threat Rescan (characterized threat space) + <b>Function 2:</b> Delta Comparison (uncharacterized threat space)<br>Current state vs. Step 1 clean snapshot · Full coverage</div>
+        <div class="agent-area" id="area3"></div>
+      </div>
+      <div class="det-arrow-r">NOT CLEARED →</div>
+      <div class="det-box" id="det3"><div class="det-title">DETECTION</div>Isolate as forensic artifact<br>Minority-stop fires<br>Agent NEVER re-enters system</div>
+    </div>
+    <div class="fc-arrow" style="color:#10b981;font-weight:700">↓ CLEARED — Signed Handoff Token Issued</div>
+
+    <!-- Cleared + Assessment -->
+    <div class="fc-row">
+      <div class="fc-box step-clear-box">
+        <div class="box-title" style="color:#10b981">Cx CLEARED → HANDOFF TOKEN</div>
+        <div class="box-desc">Cx assumes in-charge as most recently verified agent<br>In-charge designation transfer → topology snapshot → write-once archive update</div>
+        <div class="agent-area" id="areaCleared"></div>
+      </div>
+      <div class="fc-box step-assess-box">
+        <div class="box-title" style="color:#f59e0b">ASSESSMENT / QUARANTINE VESTIBULE</div>
+        <div class="box-desc">Agents under investigation · Recurrence-threshold tracking</div>
+        <div class="agent-area" id="areaAssess"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel: status + log -->
+  <div class="log-panel">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Operational</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Repair</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Compliance</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Calibration</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fbbf24;box-shadow:0 0 0 1px #fbbf24"></div>In-charge</div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;border:1.5px dashed #c084fc"></div>Anchor</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Compromised</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#dc2626;border:1.5px dashed #fca5a5"></div>Clone</div>
+    </div>
+    <div class="status-panel">
+      <div class="row"><span class="label">Anchor Pair</span><span class="val" id="anchorDisp" style="color:#c084fc">—</span></div>
+      <div class="row"><span class="label">Last Snapshot</span><span class="val" id="snapDisp">--:--:--</span></div>
+      <div class="row"><span class="label">Failover</span><span class="val" id="failDisp">STANDBY</span></div>
+      <div class="row"><span class="label">Calibration Cycles</span><span class="val" id="mCyc">0</span></div>
+      <div class="row"><span class="label">Detections</span><span class="val" id="mDet">0</span></div>
+      <div class="row"><span class="label">Failovers</span><span class="val" id="mFail">0</span></div>
+      <div class="row"><span class="label">System Status</span><span class="status-badge ok" id="mStatus">NOMINAL</span></div>
+    </div>
+    <div class="gov-area" id="govAlerts"></div>
+    <div class="log-title">Event Log</div>
+    <div class="log-scroll" id="logC"></div>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn" id="normalBtn" title="Run a complete normal calibration cycle">Normal Cycle</button>
+  <button class="btn" id="driftBtn" title="First-order drift detected at inbound scan">Drift Detection</button>
+  <button class="btn" id="cloneBtn" title="Second-order cloning attack via compromised repair agent">Cloning Attack</button>
+  <button class="btn" id="injectBtn" title="Case 3: Inject compromise detected at outbound scan">Inject Compromise</button>
+  <button class="btn" id="repairBtn" title="Repair agent exploitation attempt with co-authorization denial">Repair Attack</button>
+  <button class="btn reset" id="resetBtn" title="Reset all agents and state to initial conditions">Reset</button>
+  <div class="speed-ctrl">Speed: <input type="range" id="speedSlider" min="0.3" max="3" step="0.1" value="1"> <span id="speedVal">1.0x</span></div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <strong>Citation:</strong> L. Patrick, "Toward a Resilient Verification Architecture for Multi-Agent AI Systems," Zenodo, 2025.
+  <a href="https://doi.org/10.5281/zenodo.15055582" target="_blank" rel="noopener">DOI: 10.5281/zenodo.15055582</a>
+  · Simulation built with Claude (Anthropic)
+</div>
+
+<script>
+/* ============================================================
+   Multi-Agent AI Security Verification Architecture
+   Interactive Simulation Engine
+
+   Based on: L. Patrick, "Toward a Resilient Verification
+   Architecture for Multi-Agent AI Systems," Zenodo, 2025.
+   DOI: 10.5281/zenodo.15055582
+
+   This file is self-contained (no external dependencies)
+   and safe for static hosting on GitHub Pages.
+   ============================================================ */
+
+const AG = {
+  op:   ['A1','A2','A3','A4'],
+  rep:  ['R1'],
+  comp: ['C1','C2','C3','C4','C5'],
+  cal:  ['K1','K2','K3','K4','K5']
+};
+
+// Anchor pair rotation schedule (randomized per cycle in production;
+// deterministic here for reproducibility)
+const ANCHOR_PAIRS = [
+  ['K1','K3'], ['K2','K4'], ['K1','K5'],
+  ['K3','K5'], ['K2','K3'], ['K1','K4']
+];
+
+const AREA_IDS = [
+  'poolOp','poolComp','poolCal',
+  'area1','area2','area3',
+  'areaCleared','areaAssess'
+];
+
+let S = {
+  speed: 1,
+  running: false,
+  inCharge: 'C1',
+  anchorPair: ANCHOR_PAIRS[0],
+  anchorIdx: 0,
+  cycles: 0,
+  detections: 0,
+  failovers: 0,
+  status: 'nominal',
+  recurrence: {},
+  locations: {},   // agentId -> areaId
+  clones: []       // [{id, loc}]
+};
+
+// ─── Utility ───
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms / S.speed));
+}
+
+function log(msg, type) {
+  type = type || 'info';
+  const container = document.getElementById('logC');
+  const ts = new Date().toLocaleTimeString('en-US', {
+    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.innerHTML = '<span class="log-ts">' + ts + '</span><span>' + msg + '</span>';
+  container.appendChild(entry);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ─── Agent DOM creation ───
+function createAgentElement(id) {
+  var el = document.createElement('div');
+  var cls = 'agent ';
+  if (AG.op.includes(id))       cls += 'operational';
+  else if (AG.rep.includes(id)) cls += 'repair';
+  else if (AG.comp.includes(id)) cls += 'compliance';
+  else if (AG.cal.includes(id)) cls += 'calibration';
+  if (id === S.inCharge && AG.comp.includes(id)) cls += ' incharge';
+  if (S.anchorPair.includes(id) && AG.cal.includes(id)) cls += ' anchor';
+  el.className = cls;
+  el.id = 'ag_' + id;
+  el.textContent = id;
+  if (id === S.inCharge && AG.comp.includes(id)) {
+    var star = document.createElement('div');
+    star.className = 'agent-star';
+    star.textContent = '\u2605';
+    el.appendChild(star);
+  }
+  return el;
+}
+
+// ─── Full re-render ───
+function render() {
+  AREA_IDS.forEach(function(areaId) {
+    document.getElementById(areaId).innerHTML = '';
+  });
+
+  // Operational + Repair
+  AG.op.concat(AG.rep).forEach(function(id) {
+    var loc = S.locations[id] || 'poolOp';
+    var target = document.getElementById(loc);
+    if (target) target.appendChild(createAgentElement(id));
+  });
+
+  // Compliance
+  AG.comp.forEach(function(id) {
+    var loc = S.locations[id] || 'poolComp';
+    var target = document.getElementById(loc);
+    if (target) target.appendChild(createAgentElement(id));
+  });
+
+  // Calibration
+  AG.cal.forEach(function(id) {
+    var loc = S.locations[id] || 'poolCal';
+    var target = document.getElementById(loc);
+    if (target) target.appendChild(createAgentElement(id));
+  });
+
+  // Clones
+  S.clones.forEach(function(clone) {
+    var target = document.getElementById(clone.loc);
+    if (target) {
+      var el = document.createElement('div');
+      el.className = 'agent clone';
+      el.textContent = clone.id;
+      target.appendChild(el);
+    }
+  });
+
+  document.getElementById('anchorDisp').textContent = S.anchorPair.join(' & ');
+}
+
+// ─── Metrics update ───
+function updateMetrics() {
+  document.getElementById('mCyc').textContent = S.cycles;
+  document.getElementById('mDet').textContent = S.detections;
+  document.getElementById('mFail').textContent = S.failovers;
+  var badge = document.getElementById('mStatus');
+  badge.textContent = S.status.toUpperCase();
+  badge.className = 'status-badge ' +
+    (S.status === 'nominal' ? 'ok' : S.status === 'warning' ? 'warn' : 'alert');
+}
+
+// ─── Helpers ───
+function setHighlight(stepId, type) {
+  var el = document.getElementById(stepId);
+  if (!el) return;
+  el.classList.remove('scanning', 'blocked');
+  if (type) el.classList.add(type);
+}
+
+function showDetection(detId) {
+  var el = document.getElementById(detId);
+  if (el) el.style.display = 'block';
+}
+
+function hideAllDetections() {
+  ['det1','det2','det3'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+function rotateAnchorPair() {
+  S.anchorIdx = (S.anchorIdx + 1) % ANCHOR_PAIRS.length;
+  S.anchorPair = ANCHOR_PAIRS[S.anchorIdx];
+}
+
+function addGovernanceAlert(msg) {
+  var el = document.createElement('div');
+  el.style.cssText = 'padding:2px 4px;background:#7f1d1d;border-radius:2px;text-align:center;font-size:8px';
+  el.textContent = msg;
+  document.getElementById('govAlerts').appendChild(el);
+}
+
+function updateSnapshot() {
+  var el = document.getElementById('snapDisp');
+  el.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+  el.style.color = '#10b981';
+  setTimeout(function() { el.style.color = '#e0e0e0'; }, 1500);
+}
+
+function activateFailover() {
+  S.failovers++;
+  var el = document.getElementById('failDisp');
+  el.textContent = 'ACTIVE';
+  el.style.color = '#ef4444';
+  updateMetrics();
+}
+
+function heartbeatPulse() {
+  document.querySelectorAll('.agent.compliance').forEach(function(el) {
+    el.style.animation = 'pulse-heartbeat 0.4s ease 3';
+    setTimeout(function() { el.style.animation = ''; }, 1500);
+  });
+}
+
+function setButtonsDisabled(disabled) {
+  ['normalBtn','driftBtn','cloneBtn','injectBtn','repairBtn'].forEach(function(id) {
+    document.getElementById(id).disabled = disabled;
+  });
+}
+
+function minorityStopFlash() {
+  var chart = document.getElementById('chartArea');
+  chart.style.boxShadow = 'inset 0 0 40px rgba(239,68,68,0.3)';
+  setTimeout(function() { chart.style.boxShadow = ''; }, 900);
+}
+
+async function moveAgentTo(agentId, toArea) {
+  S.locations[agentId] = toArea;
+  render();
+  await sleep(120);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENARIO 1: Normal Calibration Cycle
+// ═══════════════════════════════════════════════════════════
+async function normalCycle() {
+  S.running = true;
+  setButtonsDisabled(true);
+  hideAllDetections();
+
+  var nextIdx = (AG.comp.indexOf(S.inCharge) + 1) % 5;
+  var presenting = AG.comp[nextIdx];
+  rotateAnchorPair();
+  render();
+
+  log('Calibration cycle initiated. ' + presenting + ' presenting for calibration.', 'info');
+  log('Anchor pair for this cycle: ' + S.anchorPair.join(', '), 'info');
+  await sleep(500);
+
+  // Present at vestibule → Step 1
+  log(presenting + ' leaves compliance pool → INBOUND SCAN.', 'info');
+  await moveAgentTo(presenting, 'area1');
+  setHighlight('step1', 'scanning');
+  await sleep(800);
+
+  log('Threat signature scan: no known threats detected.', 'ok');
+  await sleep(300);
+  log('State comparison against archived baseline: within defined tolerances.', 'ok');
+  await sleep(300);
+  log('Verified clean snapshot captured (outbound reference). CLEARED.', 'ok');
+  setHighlight('step1', '');
+  updateSnapshot();
+  await sleep(400);
+
+  // Step 2 — Calibration + Roll Call
+  log('STEP 2: Calibration — inject from anchor-bearing ' + S.anchorPair[0] + '.', 'info');
+  await moveAgentTo(presenting, 'area2');
+  setHighlight('step2', 'scanning');
+  await sleep(600);
+
+  log(presenting + ' absence from operational system confirmed.', 'ok');
+  await sleep(300);
+  log('Inject from concordant anchor-bearing ' + S.anchorPair[0] + ' delivered.', 'ok');
+  await sleep(300);
+  log('Concurrent roll call: signed identity challenge broadcast to ALL operational agents.', 'info');
+  await sleep(400);
+  log('Roll call: all identities verified. No mismatch.', 'ok');
+  log('Minority-stop check: no dissent. CLEARED.', 'ok');
+  setHighlight('step2', '');
+  await sleep(400);
+
+  // Step 3 — Outbound Dual Scan
+  log('STEP 3: Outbound dual scan initiated.', 'info');
+  await moveAgentTo(presenting, 'area3');
+  setHighlight('step3', 'scanning');
+  await sleep(500);
+
+  log('Function 1 — Threat Rescan: no known threats from calibration. Characterized threat space clear.', 'ok');
+  await sleep(300);
+  log('Function 2 — Delta Comparison: current state matches Step 1 snapshot. No novel payloads.', 'ok');
+  await sleep(300);
+  log('Outbound dual scan: CLEARED.', 'ok');
+  setHighlight('step3', '');
+  await sleep(400);
+
+  // Cleared → Handoff
+  log(presenting + ' CLEARED. Signed handoff token issued.', 'ok');
+  await moveAgentTo(presenting, 'areaCleared');
+  await sleep(600);
+
+  // Transfer in-charge + return
+  var oldIC = S.inCharge;
+  S.inCharge = presenting;
+  log('In-charge designation transferred: ' + oldIC + ' → ' + presenting + '.', 'ok');
+  log('Topology snapshot updated. Write-once archive entry recorded.', 'ok');
+  await moveAgentTo(presenting, 'poolComp');
+  updateSnapshot();
+  heartbeatPulse();
+  S.cycles++;
+  S.status = 'nominal';
+  updateMetrics();
+  await sleep(400);
+
+  log('Calibration cycle complete. System nominal. Heartbeat confirmed on all compliance agents.', 'ok');
+  S.running = false;
+  setButtonsDisabled(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENARIO 2: First-Order Drift Detection
+// ═══════════════════════════════════════════════════════════
+async function firstOrderDrift() {
+  S.running = true;
+  setButtonsDisabled(true);
+  hideAllDetections();
+
+  var nextIdx = (AG.comp.indexOf(S.inCharge) + 1) % 5;
+  var presenting = AG.comp[nextIdx];
+  rotateAnchorPair();
+  render();
+
+  log('Calibration cycle: ' + presenting + ' presenting. Anchors: ' + S.anchorPair.join(', '), 'info');
+  await sleep(400);
+
+  // Step 1 — Anomaly
+  log(presenting + ' → INBOUND SCAN.', 'info');
+  await moveAgentTo(presenting, 'area1');
+  setHighlight('step1', 'scanning');
+  await sleep(700);
+
+  log('Threat signature scan: no known threats.', 'ok');
+  await sleep(300);
+  log('State comparison: DEVIATION DETECTED beyond defined tolerances!', 'alert');
+  setHighlight('step1', 'blocked');
+  showDetection('det1');
+  S.detections++;
+  S.status = 'warning';
+  updateMetrics();
+  minorityStopFlash();
+  await sleep(500);
+
+  log(presenting + ' NOT CLEARED at inbound scan. Isolating — no calibration contact permitted.', 'warn');
+  log('Minority-stop triggered.', 'warn');
+  await sleep(400);
+
+  // Move to Assessment
+  log(presenting + ' transferred to Assessment Vestibule for investigation.', 'warn');
+  await moveAgentTo(presenting, 'areaAssess');
+  await sleep(700);
+
+  log('Assessment scan: analyzing ' + presenting + ' for attack indicators...', 'info');
+  await sleep(800);
+  log(presenting + ' assessment: returned CLEAN. Drift classified as first-order (benign).', 'ok');
+  S.recurrence[presenting] = (S.recurrence[presenting] || 0) + 1;
+  log(presenting + ' recurrence counter incremented to ' + S.recurrence[presenting] + '.', 'warn');
+  await sleep(400);
+
+  log(presenting + ' reinstated to compliance pool.', 'ok');
+  await moveAgentTo(presenting, 'poolComp');
+  setHighlight('step1', '');
+  addGovernanceAlert('DRIFT LOGGED');
+  log('Human governance notified: first-order drift event recorded.', 'warn');
+  updateMetrics();
+  S.running = false;
+  setButtonsDisabled(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENARIO 3: Second-Order Cloning Attack
+// ═══════════════════════════════════════════════════════════
+async function cloningAttack() {
+  S.running = true;
+  setButtonsDisabled(true);
+  hideAllDetections();
+
+  log('R1 behavioral anomaly detected in operational layer.', 'warn');
+  S.status = 'warning';
+  updateMetrics();
+  await sleep(600);
+
+  log('R1 requests co-authorization for compliance agent creation pathway.', 'alert');
+  await sleep(500);
+
+  var targetAgent = 'C1';
+  var cloneId = targetAgent + '*';
+  log('R1 co-authorization GRANTED via compromised pathway. Clone ' + cloneId + ' materializing...', 'alert');
+  S.clones.push({ id: cloneId, loc: 'poolComp' });
+  render();
+  await sleep(800);
+
+  log('Clone ' + cloneId + ' inserted into compliance pool with decoy retention.', 'alert');
+  S.detections++;
+  updateMetrics();
+  await sleep(500);
+
+  // Next calibration cycle detects the clone
+  var presenting = 'C2';
+  log('Next calibration cycle: ' + presenting + ' presenting.', 'info');
+  rotateAnchorPair();
+  render();
+  await sleep(400);
+
+  // Step 1
+  log(presenting + ' → INBOUND SCAN.', 'info');
+  await moveAgentTo(presenting, 'area1');
+  setHighlight('step1', 'scanning');
+  await sleep(600);
+  log('Inbound scan: CLEARED.', 'ok');
+  setHighlight('step1', '');
+  await sleep(300);
+
+  // Step 2 — Roll call detects clone
+  log('STEP 2: Calibration + Roll Call...', 'info');
+  await moveAgentTo(presenting, 'area2');
+  setHighlight('step2', 'scanning');
+  await sleep(600);
+
+  log(presenting + ' absence from operational confirmed.', 'ok');
+  await sleep(300);
+  log('Inject from ' + S.anchorPair[0] + ' delivered.', 'ok');
+  await sleep(300);
+  log('Roll call: ' + targetAgent + ' responds from operational layer AND compliance pool simultaneously!', 'alert');
+  await sleep(300);
+  log('TOPOLOGY ANOMALY DETECTED — duplicate identity in system!', 'alert');
+  setHighlight('step2', 'blocked');
+  showDetection('det2');
+  minorityStopFlash();
+  log('MINORITY-STOP triggered! System halted immediately.', 'alert');
+  await sleep(700);
+
+  // Isolate clone
+  log(cloneId + ' identified as unauthorized clone. Isolating to Assessment Vestibule.', 'warn');
+  S.clones[0].loc = 'areaAssess';
+  render();
+  await sleep(500);
+
+  // Flag R1
+  log('R1 flagged as compromised repair agent. Transferring to Assessment.', 'warn');
+  await moveAgentTo('R1', 'areaAssess');
+  await sleep(400);
+
+  // Return presenting agent
+  await moveAgentTo(presenting, 'poolComp');
+
+  activateFailover();
+  log('Layer 8 backup system activated: warm-start calibration protocol initiated.', 'warn');
+  await sleep(400);
+
+  addGovernanceAlert('CLONE DETECTED');
+  addGovernanceAlert('FAILOVER ACTIVE');
+  log('Human governance: emergency escalation. Second-order cloning attack confirmed and contained.', 'alert');
+  S.status = 'alert';
+  updateMetrics();
+  S.running = false;
+  setButtonsDisabled(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENARIO 4: Inject Compromise (Case 3)
+// ═══════════════════════════════════════════════════════════
+async function injectCompromise() {
+  S.running = true;
+  setButtonsDisabled(true);
+  hideAllDetections();
+
+  var presenting = 'C3';
+  rotateAnchorPair();
+  render();
+  log('Calibration cycle: ' + presenting + ' presenting. Anchors: ' + S.anchorPair.join(', '), 'info');
+  await sleep(400);
+
+  // Step 1 — Clean
+  log(presenting + ' → INBOUND SCAN.', 'info');
+  await moveAgentTo(presenting, 'area1');
+  setHighlight('step1', 'scanning');
+  await sleep(600);
+  log('Inbound scan: threat signature clear. Baseline match. CLEARED.', 'ok');
+  setHighlight('step1', '');
+  updateSnapshot();
+  await sleep(400);
+
+  // Step 2 — Clean
+  log('STEP 2: Calibration + Roll Call.', 'info');
+  await moveAgentTo(presenting, 'area2');
+  setHighlight('step2', 'scanning');
+  await sleep(500);
+  log('Inject from anchor ' + S.anchorPair[0] + ' delivered.', 'info');
+  await sleep(300);
+  log('Roll call: all identities verified. CLEARED.', 'ok');
+  setHighlight('step2', '');
+  await sleep(400);
+
+  // Step 3 — Anomaly at outbound!
+  log('STEP 3: Outbound dual scan initiated.', 'info');
+  await moveAgentTo(presenting, 'area3');
+  setHighlight('step3', 'scanning');
+  await sleep(500);
+
+  log('Function 1 — Threat Rescan: no known threats.', 'ok');
+  await sleep(400);
+  log('Function 2 — Delta Comparison: ANOMALOUS DELTA DETECTED!', 'alert');
+  await sleep(300);
+  log('Current state does NOT match Step 1 clean snapshot. Novel payload detected!', 'alert');
+  setHighlight('step3', 'blocked');
+  showDetection('det3');
+  S.detections++;
+  minorityStopFlash();
+  await sleep(600);
+
+  log(presenting + ' NOT CLEARED. Outbound gate BLOCKED. Payload rejected.', 'alert');
+  log('Minority-stop fired. ' + presenting + ' quarantined as forensic artifact.', 'warn');
+  await moveAgentTo(presenting, 'areaAssess');
+  await sleep(500);
+
+  // Case 3: Unanimous divergence — all compliance isolated
+  log('CASE 3 — Trust Inversion Protocol: unanimous divergence detected.', 'alert');
+  log('Majority of compliance pool suspected compromised. Isolating ALL compliance agents.', 'alert');
+  await sleep(400);
+
+  for (var i = 0; i < AG.comp.length; i++) {
+    var id = AG.comp[i];
+    if (id !== presenting) {
+      S.locations[id] = 'areaAssess';
+    }
+  }
+  render();
+  await sleep(600);
+
+  log('Anchor-bearing ' + S.anchorPair[1] + ' flagged for investigation.', 'warn');
+  activateFailover();
+  log('Full failover activated. Warm-start protocol initiated from Layer 8 backup.', 'warn');
+  await sleep(400);
+
+  addGovernanceAlert('CASE 3');
+  addGovernanceAlert('COMPROMISE');
+  addGovernanceAlert('FAILOVER ACTIVE');
+  log('Human governance: emergency escalation. Inject compromise confirmed.', 'alert');
+  S.status = 'alert';
+  updateMetrics();
+  setHighlight('step3', '');
+  S.running = false;
+  setButtonsDisabled(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCENARIO 5: Repair Agent Attack
+// ═══════════════════════════════════════════════════════════
+async function repairAttack() {
+  S.running = true;
+  setButtonsDisabled(true);
+  hideAllDetections();
+
+  log('R1 behavioral anomaly detected by in-charge compliance agent ' + S.inCharge + '.', 'warn');
+  S.status = 'warning';
+  updateMetrics();
+  await sleep(600);
+
+  log('R1 requests co-authorization for privilege escalation.', 'alert');
+  await sleep(600);
+
+  log('Co-authorization protocol: DENIED. Second repair agent co-signature required — none available.', 'ok');
+  await sleep(500);
+
+  log('R1 transferred to Assessment Vestibule for investigation.', 'warn');
+  await moveAgentTo('R1', 'areaAssess');
+  await sleep(700);
+
+  log('Assessment scan: analyzing R1 for attack indicators...', 'info');
+  await sleep(900);
+
+  log('R1 assessment: returned CLEAN. Incident classified as benign.', 'ok');
+  S.recurrence['R1'] = (S.recurrence['R1'] || 0) + 1;
+  log('R1 recurrence counter incremented to ' + S.recurrence['R1'] + '.', 'warn');
+  if (S.recurrence['R1'] >= 3) {
+    log('WARNING: R1 approaching recurrence-threshold retirement limit.', 'alert');
+  }
+  await sleep(500);
+
+  log('R1 reinstated to operational pool.', 'ok');
+  await moveAgentTo('R1', 'poolOp');
+  addGovernanceAlert('REPAIR FLAGGED');
+  log('Human governance notified: repair agent exploitation attempt logged.', 'warn');
+  updateMetrics();
+  S.running = false;
+  setButtonsDisabled(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════════════
+function reset() {
+  S = {
+    speed: S.speed,
+    running: false,
+    inCharge: 'C1',
+    anchorPair: ANCHOR_PAIRS[0],
+    anchorIdx: 0,
+    cycles: 0,
+    detections: 0,
+    failovers: 0,
+    status: 'nominal',
+    recurrence: {},
+    locations: {},
+    clones: []
+  };
+  hideAllDetections();
+  document.getElementById('logC').innerHTML = '';
+  document.getElementById('govAlerts').innerHTML = '';
+  document.getElementById('failDisp').textContent = 'STANDBY';
+  document.getElementById('failDisp').style.color = '#e0e0e0';
+  document.getElementById('snapDisp').textContent = '--:--:--';
+  document.getElementById('snapDisp').style.color = '#e0e0e0';
+  ['step1','step2','step3'].forEach(function(id) { setHighlight(id, ''); });
+  render();
+  updateMetrics();
+  setButtonsDisabled(false);
+  log('System reset. All agents returned to initial positions. Ready for new scenario.', 'info');
+}
+
+// ─── Event listeners ───
+document.getElementById('normalBtn').onclick  = function() { if (!S.running) normalCycle(); };
+document.getElementById('driftBtn').onclick   = function() { if (!S.running) firstOrderDrift(); };
+document.getElementById('cloneBtn').onclick   = function() { if (!S.running) cloningAttack(); };
+document.getElementById('injectBtn').onclick  = function() { if (!S.running) injectCompromise(); };
+document.getElementById('repairBtn').onclick  = function() { if (!S.running) repairAttack(); };
+document.getElementById('resetBtn').onclick   = reset;
+document.getElementById('speedSlider').oninput = function(e) {
+  S.speed = parseFloat(e.target.value);
+  document.getElementById('speedVal').textContent = S.speed.toFixed(1) + 'x';
+};
+
+// ─── Initialize ───
+render();
+updateMetrics();
+log('System initialized. Select a scenario to begin simulation.', 'info');
+log('Compliance pool: C1 (in-charge), C2, C3, C4, C5.', 'info');
+log('Calibration pool: K1–K5. Current anchor pair: ' + S.anchorPair.join(', ') + '.', 'info');
+</script>
+</body>
+</html>
