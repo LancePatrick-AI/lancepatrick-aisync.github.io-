@@ -1,0 +1,2671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Earnings Swing Trading Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+  :root {
+    --navy: #1B3A6B; --blue: #2E75B6; --lightblue: #D5E8F0;
+    --green: #1E7D32; --lightgreen: #E8F5E9;
+    --red: #C00000; --lightred: #FDECEA;
+    --orange: #BF6900; --lightorange: #FFF3E0;
+    --gold: #8B6914;
+    --gray: #F2F2F2; --darkgray: #595959; --white: #FFFFFF;
+    --altrow: #EBF3FB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 14px; background: #0d1b2e; color: #e0e8f0; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .dash-header {
+    background: linear-gradient(135deg, #0d1b2e 0%, #1B3A6B 100%);
+    padding: 20px 32px;
+    border-bottom: 3px solid #2E75B6;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dash-title { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+  .dash-subtitle { font-size: 12px; color: #8eaacf; margin-top: 4px; }
+  .dash-status { text-align: right; }
+  .status-pill {
+    display: inline-block; padding: 6px 18px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  }
+  .status-active { background: #1E7D32; color: #fff; }
+  .status-approaching { background: #BF6900; color: #fff; animation: pulse 2s infinite; }
+  .status-dormant { background: #444; color: #aaa; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+  .last-update { font-size: 11px; color: #8eaacf; margin-top: 6px; }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    padding: 20px 32px;
+  }
+  .full-width { grid-column: 1 / -1; }
+  .two-thirds { grid-column: 1 / 3; }
+
+  /* ── CARDS ── */
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(46,117,182,0.3);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700; color: #8eaacf;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    border-bottom: 1px solid rgba(46,117,182,0.2);
+    padding-bottom: 8px; margin-bottom: 12px;
+  }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background: rgba(192,0,0,0.15);
+    border: 2px solid #C00000;
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-bottom: 0;
+  }
+  .alert-banner.info {
+    background: rgba(46,117,182,0.15);
+    border-color: #2E75B6;
+  }
+  .alert-banner.warning {
+    background: rgba(191,105,0,0.15);
+    border-color: #BF6900;
+  }
+  .alert-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .alert-item:last-child { margin-bottom: 0; }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .dot-red { background: #C00000; }
+  .dot-orange { background: #BF6900; }
+  .dot-blue { background: #2E75B6; }
+  .dot-green { background: #1E7D32; }
+  .alert-text { font-size: 13px; line-height: 1.5; }
+  .alert-label { font-weight: 700; }
+
+  /* ── CHANGE LOG ── */
+  .change-log-entry {
+    border-left: 3px solid #C00000;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    background: rgba(192,0,0,0.07);
+    border-radius: 0 6px 6px 0;
+  }
+  .change-log-entry.no-change {
+    border-left-color: #1E7D32;
+    background: rgba(30,125,50,0.07);
+  }
+  .change-date { font-size: 11px; color: #8eaacf; font-weight: 700; }
+  .change-content { font-size: 13px; margin-top: 4px; }
+
+  /* ── STOCK TILES ── */
+  .stock-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .stock-tile {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(46,117,182,0.25);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+    position: relative;
+  }
+  .stock-tile.active-position { border-color: #1E7D32; border-width: 2px; }
+  .stock-tile.entry-window { border-color: #BF6900; border-width: 2px; }
+  .tile-ticker { font-size: 18px; font-weight: 700; color: #fff; }
+  .tile-price { font-size: 22px; font-weight: 700; margin: 6px 0; }
+  .tile-change { font-size: 13px; margin-bottom: 8px; }
+  .tile-change.up { color: #4CAF50; }
+  .tile-change.down { color: #ef5350; }
+  .tile-label { font-size: 10px; color: #8eaacf; text-transform: uppercase; letter-spacing: 1px; }
+  .tile-sub { font-size: 11px; color: #8eaacf; margin-top: 2px; }
+  .tile-entry { font-size: 11px; font-weight: 700; }
+  .tile-entry.buy-zone { color: #BF6900; }
+  .tile-entry.watch { color: #8eaacf; }
+  .tile-entry.in-position { color: #4CAF50; }
+  .tile-stop { font-size: 11px; color: #ef5350; }
+  .tile-target { font-size: 11px; color: #4CAF50; }
+  .tile-badge {
+    position: absolute; top: -8px; right: 8px;
+    font-size: 9px; font-weight: 700; padding: 2px 6px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-phase-a { background: #BF6900; color: #fff; }
+  .badge-phase-b { background: #1B3A6B; color: #fff; border: 1px solid #2E75B6; }
+  .badge-top-dip { background: #1E7D32; color: #fff; }
+
+  /* ── TIMELINE ── */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: rgba(46,117,182,0.3);
+  }
+  .timeline-item { position: relative; margin-bottom: 16px; }
+  .timeline-dot {
+    position: absolute; left: -20px; top: 4px;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid #2E75B6;
+  }
+  .timeline-dot.past { background: #2E75B6; }
+  .timeline-dot.current { background: #BF6900; border-color: #BF6900; box-shadow: 0 0 8px #BF6900; animation: pulse 2s infinite; }
+  .timeline-dot.future { background: transparent; }
+  .timeline-date { font-size: 11px; color: #8eaacf; font-weight: 700; }
+  .timeline-event { font-size: 13px; margin-top: 2px; }
+  .timeline-action { font-size: 11px; color: #4CAF50; margin-top: 2px; font-style: italic; }
+
+  /* ── POSITION TABLE ── */
+  .pos-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .pos-table th {
+    background: rgba(27,58,107,0.5); color: #8eaacf;
+    padding: 8px 10px; text-align: left;
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    border-bottom: 1px solid rgba(46,117,182,0.3);
+  }
+  .pos-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .pos-table tr:hover td { background: rgba(46,117,182,0.1); }
+  .val-green { color: #4CAF50; font-weight: 700; }
+  .val-red { color: #ef5350; font-weight: 700; }
+  .val-orange { color: #FFA726; font-weight: 700; }
+  .val-blue { color: #42A5F5; }
+  .val-white { color: #fff; font-weight: 600; }
+
+  /* ── RECOMMENDATION BOX ── */
+  .reco-box {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .reco-box.action-needed { background: rgba(192,0,0,0.15); border: 1px solid #C00000; }
+  .reco-box.monitor { background: rgba(191,105,0,0.15); border: 1px solid #BF6900; }
+  .reco-box.on-track { background: rgba(30,125,50,0.12); border: 1px solid #1E7D32; }
+  .reco-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .reco-box.action-needed .reco-title { color: #ef5350; }
+  .reco-box.monitor .reco-title { color: #FFA726; }
+  .reco-box.on-track .reco-title { color: #4CAF50; }
+  .reco-text { font-size: 12px; line-height: 1.5; }
+
+  /* ── PERIOD INDICATOR ── */
+  .period-tabs {
+    display: flex; gap: 8px; margin-bottom: 16px;
+    padding: 0 32px;
+  }
+  .period-tab {
+    padding: 8px 20px; border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer; border: none; outline: none;
+  }
+  .period-tab.active { background: #2E75B6; color: #fff; }
+  .period-tab.upcoming { background: rgba(255,255,255,0.07); color: #8eaacf; }
+  .period-tab.dormant { background: rgba(255,255,255,0.03); color: #555; }
+
+  /* ── COUNTDOWN ── */
+  .countdown-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+  .countdown-box { text-align: center; background: rgba(27,58,107,0.4); border-radius: 6px; padding: 10px; }
+  .countdown-num { font-size: 28px; font-weight: 700; color: #fff; }
+  .countdown-label { font-size: 10px; color: #8eaacf; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── PHASE PROGRESS BAR ── */
+  .phase-bar { display: flex; gap: 4px; margin-top: 8px; }
+  .phase-seg { height: 6px; border-radius: 3px; flex: 1; }
+  .phase-seg.done { background: #1E7D32; }
+  .phase-seg.current { background: #BF6900; animation: pulse 2s infinite; }
+  .phase-seg.pending { background: rgba(255,255,255,0.15); }
+
+  /* ── DORMANT STATE ── */
+  .dormant-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(10,15,25,0.92);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+  }
+  .dormant-overlay.show { display: flex; }
+  .dormant-icon { font-size: 64px; margin-bottom: 16px; }
+  .dormant-title { font-size: 28px; font-weight: 700; color: #8eaacf; margin-bottom: 8px; }
+  .dormant-text { font-size: 16px; color: #556; max-width: 500px; margin: 0 auto 24px; line-height: 1.6; }
+  .dormant-next { background: rgba(46,117,182,0.2); border: 1px solid #2E75B6; border-radius: 8px; padding: 16px 32px; }
+  .dormant-next-label { font-size: 12px; color: #8eaacf; text-transform: uppercase; letter-spacing: 1px; }
+  .dormant-next-date { font-size: 22px; font-weight: 700; color: #42A5F5; margin-top: 4px; }
+
+  .footer-bar {
+    background: rgba(27,58,107,0.3);
+    border-top: 1px solid rgba(46,117,182,0.2);
+    padding: 10px 32px;
+    font-size: 11px; color: #556;
+    text-align: center;
+  }
+  .refresh-btn {
+    background: rgba(46,117,182,0.2); border: 1px solid #2E75B6;
+    color: #42A5F5; padding: 6px 16px; border-radius: 6px;
+    cursor: pointer; font-size: 12px; font-weight: 700;
+  }
+  .refresh-btn:hover { background: rgba(46,117,182,0.4); }
+  .loading { opacity: 0.5; font-style: italic; }
+  .error-price { color: #ef5350; font-style: italic; font-size: 11px; }
+
+  /* ── CHART BUTTON ── */
+  .chart-btn {
+    display: block; width: 100%; margin-top: 10px;
+    background: rgba(46,117,182,0.18); border: 1px solid rgba(46,117,182,0.5);
+    color: #42A5F5; padding: 6px 10px; border-radius: 5px;
+    cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .chart-btn:hover { background: rgba(46,117,182,0.38); border-color: #42A5F5; }
+
+  /* ── CHART MODAL ── */
+  .chart-modal {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(5,10,20,0.97);
+    flex-direction: column;
+  }
+  .chart-modal.show { display: flex; }
+  .chart-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; flex-shrink: 0;
+    background: rgba(27,58,107,0.7);
+    border-bottom: 2px solid #2E75B6;
+  }
+  .chart-modal-title { font-size: 20px; font-weight: 700; color: #fff; }
+  .chart-modal-subtitle { font-size: 11px; color: #8eaacf; margin-top: 3px; }
+  .chart-modal-controls { display: flex; align-items: center; gap: 20px; }
+  .rsi-readout { display: flex; align-items: baseline; gap: 6px; }
+  .rsi-readout-label { font-size: 11px; color: #8eaacf; text-transform: uppercase; letter-spacing: 1px; }
+  .rsi-readout-value { font-size: 24px; font-weight: 700; }
+  .rsi-readout-signal { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .rsi-overbought { color: #ef5350; background: rgba(239,83,80,0.15); border: 1px solid rgba(239,83,80,0.3); }
+  .rsi-oversold   { color: #4CAF50; background: rgba(76,175,80,0.15);  border: 1px solid rgba(76,175,80,0.3);  }
+  .rsi-neutral    { color: #FFA726; background: rgba(255,167,38,0.12); border: 1px solid rgba(255,167,38,0.3); }
+  .chart-close-btn {
+    background: rgba(192,0,0,0.25); border: 1px solid #C00000;
+    color: #ef5350; padding: 8px 20px; border-radius: 6px;
+    cursor: pointer; font-size: 13px; font-weight: 700;
+  }
+  .chart-close-btn:hover { background: rgba(192,0,0,0.45); }
+  .chart-modal-body { flex: 1; overflow: hidden; min-height: 0; position: relative; }
+  .chart-modal-footer {
+    flex-shrink: 0; padding: 7px 24px;
+    background: rgba(27,58,107,0.35); border-top: 1px solid rgba(46,117,182,0.2);
+    font-size: 10px; color: #445; text-align: center; letter-spacing: 0.3px;
+  }
+  .chart-loading {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: #8eaacf; font-size: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+    .two-thirds { grid-column: 1 / -1; }
+    .stock-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── FILE:// CORS WARNING (hidden by default, shown by JS if needed) ──── -->
+<div id="corsWarning" style="display:none;position:fixed;inset:0;z-index:2000;
+     background:rgba(5,10,20,0.97);align-items:center;justify-content:center;flex-direction:column;text-align:center;">
+  <div style="font-size:52px;margin-bottom:16px;">⚠️</div>
+  <div style="font-size:22px;font-weight:700;color:#FFA726;margin-bottom:12px;">Live prices are blocked</div>
+  <div style="font-size:15px;color:#8eaacf;max-width:560px;line-height:1.7;margin-bottom:28px;">
+    You opened the dashboard directly as a <strong style="color:#ef5350;">file://</strong> URL.<br>
+    Browsers block all external API calls (Yahoo Finance prices &amp; charts) from file:// pages.<br><br>
+    <strong style="color:#fff;">Use the launcher instead:</strong><br>
+    Double-click <strong style="color:#4CAF50;">Start Dashboard.command</strong> in the same folder.<br>
+    It starts a local web server and opens the dashboard with full live data.
+  </div>
+  <div style="background:rgba(30,125,50,0.15);border:1px solid #1E7D32;border-radius:10px;padding:18px 36px;margin-bottom:24px;">
+    <div style="font-size:12px;color:#8eaacf;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Or open this URL manually after running the script</div>
+    <div style="font-size:18px;font-weight:700;color:#4CAF50;font-family:monospace;">http://localhost:8765/2026_Trading_Dashboard.html</div>
+  </div>
+  <button class="refresh-btn" onclick="document.getElementById('corsWarning').style.display='none';"
+          style="font-size:13px;padding:10px 28px;">
+    Continue anyway (prices will not load)
+  </button>
+</div>
+
+<!-- ── CHART MODAL ──────────────────────────────────────────── -->
+<div class="chart-modal" id="chartModal">
+  <div class="chart-modal-header">
+    <div>
+      <div class="chart-modal-title" id="chartModalTitle">—</div>
+      <div class="chart-modal-subtitle" id="chartModalSubtitle">Fetching data… · Candlestick + Volume + RSI(14) · Auto-refreshes every 5 min</div>
+    </div>
+    <div class="chart-modal-controls">
+      <div class="rsi-readout">
+        <span class="rsi-readout-label">RSI(14)</span>
+        <span class="rsi-readout-value" id="chartRsiValue">—</span>
+        <span class="rsi-readout-signal rsi-neutral" id="chartRsiSignal">Loading</span>
+      </div>
+      <button class="chart-close-btn" onclick="closeChart()">✕ Close Chart</button>
+    </div>
+  </div>
+  <div class="chart-modal-body">
+    <div id="chartPlot" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
+  </div>
+  <div class="chart-modal-footer">
+    ⚠ Yahoo Finance data may be delayed ~15 min during market hours &nbsp;|&nbsp;
+    <span style="color:#BF6900;">━━</span> Limit Buy &nbsp;
+    <span style="color:#ef5350;">┅┅</span> Stop Loss &nbsp;
+    <span style="color:#4CAF50;">─ ·</span> T1 Target &nbsp;|&nbsp;
+    RSI zones: <span style="color:#ef5350;">red band = overbought &gt;70</span> &nbsp;·&nbsp; <span style="color:#4CAF50;">green band = oversold &lt;30</span>
+  </div>
+</div>
+
+<!-- ── DORMANT OVERLAY ─────────────────────────────────────── -->
+<div class="dormant-overlay" id="dormantOverlay">
+  <div class="dormant-icon">😴</div>
+  <div class="dormant-title">Dashboard Dormant</div>
+  <div class="dormant-text">
+    The trading dashboard activates 72 hours before the next planned entry window.
+    Check back closer to the entry date or click below to preview in active mode.
+  </div>
+  <div class="dormant-next">
+    <div class="dormant-next-label">Next Activation</div>
+    <div class="dormant-next-date" id="nextActivationDate">April 24, 2026</div>
+  </div>
+  <br>
+  <button class="refresh-btn" onclick="document.getElementById('dormantOverlay').classList.remove('show'); initDashboard();">Preview Dashboard</button>
+</div>
+
+<!-- ── HEADER ─────────────────────────────────────────────── -->
+<div class="dash-header">
+  <div>
+    <div class="dash-title">📈 2026 EARNINGS SWING TRADING DASHBOARD</div>
+    <div class="dash-subtitle">E*Trade Platform  |  Q1 • Q2 • Q3 2026  |  US-Accessible Instruments Only</div>
+  </div>
+  <div class="dash-status">
+    <div><span class="status-pill status-approaching" id="statusPill">APPROACHING ENTRY</span></div>
+    <div class="last-update">Last updated: <span id="lastUpdated">—</span></div>
+    <div style="margin-top:8px;"><button class="refresh-btn" onclick="refreshPrices()">⟳ Refresh Prices</button></div>
+  </div>
+</div>
+
+<!-- ── PERIOD TABS ─────────────────────────────────────────── -->
+<div class="period-tabs">
+  <button class="period-tab active" onclick="switchPeriod(1,this)">PERIOD 1 — Q1 2026 (Apr–May)</button>
+  <button class="period-tab upcoming" onclick="switchPeriod(2,this)">PERIOD 2 — Q2 2026 (Jul–Aug)</button>
+  <button class="period-tab dormant" onclick="switchPeriod(3,this)">PERIOD 3 — Q3 2026 (Oct–Nov)</button>
+</div>
+
+<!-- ── MAIN GRID ─────────────────────────────────────────── -->
+<div class="main-grid" id="mainGrid">
+
+  <!-- ALERT BANNER (full width) -->
+  <div class="card full-width alert-banner info" id="alertBanner">
+    <div class="card-title">🔔 ACTIVE ALERTS &amp; RECOMMENDATIONS</div>
+    <div id="alertContent">
+      <div class="alert-item">
+        <div class="alert-dot dot-blue"></div>
+        <div class="alert-text"><span class="alert-label">STATUS:</span> Dashboard is in PRE-ENTRY monitoring mode. First entry window (Phase A: SHOP + META) opens April 24, 2026 — <span id="daysToPhaseA" style="color:#FFA726;font-weight:700;">calculating...</span> days from today.</div>
+      </div>
+      <div class="alert-item">
+        <div class="alert-dot dot-orange"></div>
+        <div class="alert-text"><span class="alert-label">ACTION — OPTIONS APPROVAL:</span> Apply for E*Trade Level 2 options approval NOW to ensure active status before Period 2 (July 2026). Go to: My Account → Trading Permissions → Update Options Level.</div>
+      </div>
+      <div class="alert-item">
+        <div class="alert-dot dot-blue"></div>
+        <div class="alert-text"><span class="alert-label">MONITORING:</span> Watch all 5 candidate stocks daily. Pre-earnings dip signals begin approximately April 22 for Phase A (SHOP, META, TSLA) and April 28 for Phase B (PLTR, NVDA).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK PRICE TILES (full width) -->
+  <div class="card full-width">
+    <div class="card-title">📊 PERIOD 1 CANDIDATES — LIVE PRICES <span id="priceStatus" class="loading">Loading...</span></div>
+    <div class="stock-grid" id="stockGrid">
+
+      <!-- SHOP -->
+      <div class="stock-tile entry-window" id="tile-SHOP">
+        <div class="tile-badge badge-phase-a">Phase A</div>
+        <div class="tile-ticker">SHOP</div>
+        <div class="tile-label">Shopify</div>
+        <div class="tile-price" id="price-SHOP">$135.14</div>
+        <div class="tile-change" id="change-SHOP">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry buy-zone">🎯 Limit Buy: $113.00</div>
+          <div class="tile-stop">⛔ Stop: $106.00</div>
+          <div class="tile-target">✅ T1: $127 | T2: $140+</div>
+        </div>
+        <div class="tile-sub">Earnings: Apr 30 (Conf.)</div>
+        <div class="tile-sub">Entry: Apr 25–28</div>
+        <button class="chart-btn" onclick="openChart('SHOP')">📊 Chart + RSI</button>
+      </div>
+
+      <!-- META -->
+      <div class="stock-tile" id="tile-META">
+        <div class="tile-badge badge-phase-a">Phase A</div>
+        <div class="tile-ticker">META</div>
+        <div class="tile-label">Meta Platforms</div>
+        <div class="tile-price" id="price-META">$670.91</div>
+        <div class="tile-change" id="change-META">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry watch">🎯 Limit Buy: $573.00</div>
+          <div class="tile-stop">⛔ Stop: $549.00</div>
+          <div class="tile-target">✅ T1: $618 | T2: $642+</div>
+        </div>
+        <div class="tile-sub">Earnings: Apr 29 (Proj.)</div>
+        <div class="tile-sub">Entry: Apr 24–27</div>
+        <button class="chart-btn" onclick="openChart('META')">📊 Chart + RSI</button>
+      </div>
+
+      <!-- TSLA -->
+      <div class="stock-tile" id="tile-TSLA">
+        <div class="tile-badge" style="background:#555;color:#aaa">Tertiary</div>
+        <div class="tile-ticker">TSLA</div>
+        <div class="tile-label">Tesla</div>
+        <div class="tile-price" id="price-TSLA">$392.50</div>
+        <div class="tile-change" id="change-TSLA">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry" style="color:#888">🎯 Cond. Buy: $369.00*</div>
+          <div class="tile-stop">⛔ Stop: $339.00</div>
+          <div class="tile-target">✅ T1: $425 | T2: $462+</div>
+        </div>
+        <div class="tile-sub">Earnings: Apr 28 (Proj.)</div>
+        <div class="tile-sub">*Conditional — 15% cap max</div>
+        <button class="chart-btn" onclick="openChart('TSLA')">📊 Chart + RSI</button>
+      </div>
+
+      <!-- PLTR -->
+      <div class="stock-tile" id="tile-PLTR">
+        <div class="tile-badge badge-phase-b">Phase B ★</div>
+        <div class="tile-ticker">PLTR</div>
+        <div class="tile-label">Palantir</div>
+        <div class="tile-price" id="price-PLTR">$145.89</div>
+        <div class="tile-change" id="change-PLTR">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry buy-zone">🎯 Limit Buy: $148.00</div>
+          <div class="tile-stop">⛔ Stop: $137.50</div>
+          <div class="tile-target">✅ T1: $170 | T2: $190+</div>
+        </div>
+        <div class="tile-sub">Earnings: May 4 (Proj.)</div>
+        <div class="tile-sub">Entry: Apr 30–May 1</div>
+        <button class="chart-btn" onclick="openChart('PLTR')">📊 Chart + RSI</button>
+      </div>
+
+      <!-- NVDA -->
+      <div class="stock-tile" id="tile-NVDA">
+        <div class="tile-badge badge-top-dip">Top Dip ★</div>
+        <div class="tile-ticker">NVDA</div>
+        <div class="tile-label">NVIDIA</div>
+        <div class="tile-price" id="price-NVDA">$202.06</div>
+        <div class="tile-change" id="change-NVDA">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry watch">🎯 Limit Buy: $172.00</div>
+          <div class="tile-stop">⛔ Stop: $165.00</div>
+          <div class="tile-target">✅ T1: $186 | T2: $198+</div>
+        </div>
+        <div class="tile-sub">Earnings: May 20 (Conf.)</div>
+        <div class="tile-sub">Entry: May 14–18</div>
+        <button class="chart-btn" onclick="openChart('NVDA')">📊 Chart + RSI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT: COUNTDOWN + TIMELINE -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- Countdown -->
+    <div class="card">
+      <div class="card-title">⏱ COUNTDOWN TO NEXT ENTRY</div>
+      <div style="font-size:12px;color:#8eaacf;margin-bottom:10px;" id="countdownLabel">Phase A Entry Window: April 24, 2026</div>
+      <div class="countdown-grid" id="countdownGrid">
+        <div class="countdown-box"><div class="countdown-num" id="cd-days">—</div><div class="countdown-label">Days</div></div>
+        <div class="countdown-box"><div class="countdown-num" id="cd-hours">—</div><div class="countdown-label">Hours</div></div>
+        <div class="countdown-box"><div class="countdown-num" id="cd-mins">—</div><div class="countdown-label">Minutes</div></div>
+        <div class="countdown-box"><div class="countdown-num" id="cd-secs">—</div><div class="countdown-label">Seconds</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#8eaacf;">Period 1 Progress</div>
+      <div class="phase-bar" id="progressBar" style="margin-top:6px;"></div>
+      <div id="progressLabels" style="display:flex;justify-content:space-between;font-size:9px;color:#444;margin-top:4px;"></div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card">
+      <div class="card-title">💡 CURRENT RECOMMENDATIONS</div>
+      <div id="recommendations">
+        <div class="reco-box on-track">
+          <div class="reco-title">✅ ON TRACK</div>
+          <div class="reco-text">No immediate action required. Continue monitoring. Pre-earnings dip signals are not yet active — they typically emerge 5–10 days before each earnings date.</div>
+        </div>
+        <div class="reco-box monitor">
+          <div class="reco-title">👁 WATCH THIS WEEK</div>
+          <div class="reco-text"><strong>SHOP at $113 target:</strong> Stock already down 25% YTD. Monitor daily for further dip toward limit buy zone ($113–$116). If SHOP drops below $113 before April 25: your limit buy is already in the money — review position sizing.</div>
+        </div>
+        <div class="reco-box monitor">
+          <div class="reco-title">📋 ACTION ITEMS</div>
+          <div class="reco-text">
+            1. Apply for E*Trade Level 2 options now.<br>
+            2. Set E*Trade price alerts: PLTR @ $152, SHOP @ $116, NVDA @ $175, META @ $580.<br>
+            3. Verify TSLA Q1 delivery numbers when released (~April 2).<br>
+            4. Confirm PLTR May 4 earnings date on palantir.com/investors.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: TIMELINE -->
+  <div class="card">
+    <div class="card-title">📅 PERIOD 1 TRADING TIMELINE</div>
+    <div class="timeline">
+      <div class="timeline-item" data-date="2026-03-26">
+        <div class="timeline-dot past"></div>
+        <div class="timeline-date">March 26, 2026</div>
+        <div class="timeline-event">Master Plan Created — Dashboard Activated</div>
+        <div class="timeline-action">Action: Monitor all 5 candidates daily</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-02">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">~April 2, 2026</div>
+        <div class="timeline-event">TSLA Q1 Delivery Numbers Released</div>
+        <div class="timeline-action">Action: If miss &gt;5% → skip TSLA entirely</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-24">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 22–24 (Conditional)</div>
+        <div class="timeline-event">⚡ TSLA Entry Window (Conditional)</div>
+        <div class="timeline-action">Enter ONLY if delivery data was in-line and stock dipped 4%+</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-27">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 24–27 — PHASE A OPENS</div>
+        <div class="timeline-event" style="color:#FFA726;font-weight:700;">🎯 META Limit Buy: $573.00</div>
+        <div class="timeline-action">Place GTC limit buy + pre-load stop ($549) + T1 sell ($618)</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-28">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 25–28</div>
+        <div class="timeline-event" style="color:#FFA726;font-weight:700;">🎯 SHOP Limit Buy: $113.00</div>
+        <div class="timeline-action">Place GTC limit buy + stop ($106) + T1 sell ($127)</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-28">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 28 (AH) — TSLA Earnings</div>
+        <div class="timeline-event">Monitor reaction. Exit TSLA if held.</div>
+        <div class="timeline-action">Sell 50% on open gap-up. Set trailing stop on remainder.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-29">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 29 (AH) — META Earnings</div>
+        <div class="timeline-event">META reports after hours</div>
+        <div class="timeline-action">T1 sell ($618) executes automatically on gap. Set trailing stop for T2.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-04-30">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 30 (BO) — SHOP Earnings</div>
+        <div class="timeline-event">SHOP reports before market open</div>
+        <div class="timeline-action">T1 sell ($127) executes at open. Set 5% trailing stop.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-05-01">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">April 30–May 1 — PHASE B OPENS</div>
+        <div class="timeline-event" style="color:#FFA726;font-weight:700;">🎯 PLTR Limit Buy: $148.00</div>
+        <div class="timeline-action">Run 48-hour checklist. Deploy rolled Phase A capital.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-05-04">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">May 4 (AH) — PLTR Earnings</div>
+        <div class="timeline-event">PLTR reports after hours</div>
+        <div class="timeline-action">T1 ($170) executes. Set 6% trailing stop.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-05-14">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">May 14–18 — NVDA Entry Window (Phase C)</div>
+        <div class="timeline-event" style="color:#FFA726;font-weight:700;">🎯 NVDA GTC Limit: $190–195</div>
+        <div class="timeline-action">Final position of Period 1. GTC should already be live — verify before May 14.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-05-20">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">May 20 (AH) — NVDA Earnings</div>
+        <div class="timeline-event">NVDA reports after hours. Period 1 closes.</div>
+        <div class="timeline-action">T1 executes. Trail remaining with 4% stop. Bank 50% of Period 1 profits.</div>
+      </div>
+      <div class="timeline-item" data-date="2026-05-22">
+        <div class="timeline-dot future"></div>
+        <div class="timeline-date">~May 22, 2026</div>
+        <div class="timeline-event" style="color:#4CAF50;">✅ PERIOD 1 COMPLETE</div>
+        <div class="timeline-action">Calculate profits. Period 2 capital = Starting amount + 50% of profits.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: POSITION TRACKER -->
+  <div class="card">
+    <div class="card-title">💼 POSITION TRACKER</div>
+    <table class="pos-table">
+      <thead>
+        <tr>
+          <th>Ticker</th><th>Status</th><th>Entry</th><th>Current</th><th>P&amp;L %</th><th>Next Action</th>
+        </tr>
+      </thead>
+      <tbody id="positionRows">
+        <tr>
+          <td class="val-white">SHOP</td>
+          <td><span style="color:#FFA726;font-size:11px;">⏳ WAITING</span></td>
+          <td style="color:#8eaacf;">$113.00</td>
+          <td id="cur-SHOP">$121.10</td>
+          <td>—</td>
+          <td style="font-size:11px;color:#8eaacf;">Set GTC limit Apr 25</td>
+        </tr>
+        <tr>
+          <td class="val-white">META</td>
+          <td><span style="color:#FFA726;font-size:11px;">⏳ WAITING</span></td>
+          <td style="color:#8eaacf;">$573.00</td>
+          <td id="cur-META">$592.92</td>
+          <td>—</td>
+          <td style="font-size:11px;color:#8eaacf;">Set GTC limit Apr 24</td>
+        </tr>
+        <tr>
+          <td class="val-white">TSLA</td>
+          <td><span style="color:#888;font-size:11px;">◎ CONDITIONAL</span></td>
+          <td style="color:#8eaacf;">$369.00*</td>
+          <td id="cur-TSLA">$385.95</td>
+          <td>—</td>
+          <td style="font-size:11px;color:#8eaacf;">Monitor delivery data</td>
+        </tr>
+        <tr>
+          <td class="val-white">PLTR</td>
+          <td><span style="color:#42A5F5;font-size:11px;">👁 MONITORING</span></td>
+          <td style="color:#8eaacf;">$148.00</td>
+          <td id="cur-PLTR">$154.78</td>
+          <td>—</td>
+          <td style="font-size:11px;color:#8eaacf;">Set GTC limit Apr 30</td>
+        </tr>
+        <tr>
+          <td class="val-white">NVDA</td>
+          <td><span style="color:#42A5F5;font-size:11px;">👁 MONITORING</span></td>
+          <td style="color:#8eaacf;">$172.00</td>
+          <td id="cur-NVDA">$179.45</td>
+          <td>—</td>
+          <td style="font-size:11px;color:#8eaacf;">Set GTC limit May 14</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:11px;color:#8eaacf;">
+      <strong>Capital Deployment</strong> (based on $1,500 starting):
+    </div>
+    <div style="margin-top:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span>Phase A Capital</span><span style="color:#FFA726;">$975 (65%)</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span>Phase B Capital (estimated)</span><span style="color:#42A5F5;">Roll from Phase A + $525</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span>Reserve</span><span style="color:#4CAF50;">$150 (10%)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET CONTEXT (bottom) -->
+  <div class="card full-width">
+    <div class="card-title">🌐 MARKET CONTEXT &amp; RISK SIGNALS — MONITOR WEEKLY</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;" id="marketContext">
+      <div>
+        <div style="font-size:11px;color:#8eaacf;margin-bottom:6px;">VIX (Fear Index)</div>
+        <div id="vix-value" style="font-size:20px;font-weight:700;color:#4CAF50;">Loading...</div>
+        <div style="font-size:11px;color:#8eaacf;margin-top:2px;">Target: Below 20 for full positions</div>
+        <div style="font-size:11px;margin-top:4px;" id="vix-signal">—</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#8eaacf;margin-bottom:6px;">QQQ Trend</div>
+        <div id="qqq-value" style="font-size:20px;font-weight:700;">Loading...</div>
+        <div style="font-size:11px;color:#8eaacf;margin-top:2px;">Above 50-day MA = bullish</div>
+        <div style="font-size:11px;margin-top:4px;" id="qqq-signal">—</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#8eaacf;margin-bottom:6px;">Market Scenario</div>
+        <div id="scenario-value" style="font-size:16px;font-weight:700;color:#FFA726;">Calculating...</div>
+        <div style="font-size:11px;color:#8eaacf;margin-top:2px;">Determines position sizing</div>
+        <div style="font-size:11px;margin-top:4px;" id="scenario-signal">—</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:#8eaacf;margin-bottom:6px;">Recommended Action</div>
+        <div id="action-value" style="font-size:14px;font-weight:700;color:#4CAF50;">Monitor</div>
+        <div style="font-size:11px;color:#8eaacf;margin-top:2px;">Based on all signals</div>
+        <div style="font-size:11px;margin-top:4px;" id="action-signal">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANGE LOG CARD -->
+  <div class="card two-thirds">
+    <div class="card-title">📝 CHANGE LOG — MOST RECENT UPDATES</div>
+    <div id="changeLog">
+        <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;font-size:13px;color:#4CAF50;margin-bottom:6px;">🟢 May 8, 2026 (Friday AM) — v4.7 — NO SIGNIFICANT CHANGES — BULLISH SCENARIO HOLDS, NVDA 12 DAYS TO EARNINGS</div>
+          <p style="margin:4px 0;font-size:13px;">CADENCE NOTE: Scheduled update per v4.6 (May 7 AM). No material catalysts require action. All positions unchanged.</p>
+          <p style="margin:4px 0;font-size:13px;">VIX ($17.32, was $16.73 in v4.6) — STABLE, BELOW 18: Slight uptick but no threshold breach. NVDA full-size GTC remains live. Bullish scenario continues.</p>
+          <p style="margin:4px 0;font-size:13px;">QQQ ($695.77, was $687.78 in v4.6) — CONTINUED BULLISH THRUST: +$8 (+1.2%) since v4.6. Well above 50-day MA (~$617-$676). Nasdaq at new record highs (~25,839). No scenario change.</p>
+          <p style="margin:4px 0;font-size:13px;">NVDA ($211.50, was $207.83 in v4.6) — 12 DAYS TO EARNINGS (May 20): +$3.67 (+1.8%) — moving FURTHER FROM $190-195 dip zone. Phase C GTC limit remains live at $190-195. Analyst consensus: Strong Buy, avg PT $270.73. NVDA/Corning optical fab partnership announced (positive long-term catalyst). ACTION: No change — GTC limit stays live. Watch for any dip toward $195-200 in next 12 days.</p>
+          <p style="margin:4px 0;font-size:13px;">PLTR ($135.99, was $133.43 in v4.6) — SLIGHT BOUNCE, THESIS STILL CRACKED: +$2.56 (+1.9%) but still well below $140 threshold. Q2 2026 earnings confirmed Aug 10, 2026. HSBC Neutral downgrade noted. Q1 was exceptional (+85% rev, +104% US rev, FY guide to $7.65B). ACTION: No new entry. Needs to reclaim and hold $150+ to restore bull thesis.</p>
+          <p style="margin:4px 0;font-size:13px;">SHOP ($111.74, was $107.63 in v4.6) — POST-EARNINGS RECOVERY BOUNCE: +$4.11 (+3.8%). Recovering from -14% post-earnings drop. Q2 growth guided 'high twenties %' (below expectations). Buy consensus from 31 analysts. Next earnings July 29, 2026. ACTION: No new entry — wait for confirmation that Q2 guidance weakness is priced in.</p>
+          <p style="margin:4px 0;font-size:13px;">META ($613.03, was $613.03 in v4.6) — FLAT/STABLE: No price change. Hyperscalers (incl. META) lifted combined 2026 AI capex to $725B (+77% YoY) — structural tailwind confirmed. ACTION: Hold/monitor only.</p>
+          <p style="margin:4px 0;font-size:13px;">MACRO UPDATE: Fed held at 3.5-3.75%, no cuts expected (next FOMC June 16-17). US-Iran ceasefire risk-on persists. Tech AI capex cycle accelerating. No new risk factors identified.</p>
+          <p style="margin:4px 0;font-size:13px;">PRIORITY ACTIONS FOR MAY 8: (1) NVDA — GTC $190-195 stays live; 12 days to May 20 earnings — watch for dip opportunity. (2) PLTR — No action; thesis cracked. (3) SHOP — No action; recovery bounce insufficient for re-entry. (4) META — Hold/monitor.</p>
+          <p style="margin:4px 0;font-size:13px;">NEXT SCHEDULED UPDATE: May 11, 2026 (Monday AM) — 72-hr cadence. UNSCHEDULED TRIGGER: If NVDA dips to $195-200 zone before May 20 earnings.</p>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">&#9654; May 7, 2026 (Thursday AM) &#8212; v4.6 &#8212; &#127993; UNSCHEDULED: VIX REVERSES BELOW 18 &#8226; NVDA +4.3% ($207.83) &#8212; SIZING RESTORED</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">UNSCHEDULED &#183; Material catalysts override 72-hr cadence: VIX crossed back below 18 (reverses size-reduction signal) + NVDA +4.3% intraday &#183; Next scheduled: May 8, 2026 (Friday AM)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">CURRENT PRICES (May 7 AM):</strong>
+            PLTR ~$133.43 (&#8722;1.4% from v4.5 &#8212; thesis still cracked) &#124; SHOP ~$107.63 (&#8722;4% from v4.5 &#8212; post-earnings drift) &#124; NVDA $207.83 (+4.3% &#8212; Phase C GTC armed) &#124; META $613.03 (+0.5% &#8212; monitor only) &#124; TSLA $398.71 (excluded)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;"><strong style="color:#FF6600;">MARKET:</strong> VIX 16.73 (was 18.29 in v4.5) &#8212; REVERSED BELOW 18, LOW VOL BULLISH &#124; QQQ $687.78 (+$13.63 from v4.5), above 50-day MA (~$668) &#8212; STRONG BULLISH &#124; Macro: US&#8211;Iran ceasefire confirmed, risk-on &#124; Fed: 3.5&#8211;3.75%, next FOMC June 16&#8211;17</div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#FF6600;">KEY CHANGES &amp; ACTIONS:</strong>
+            <ul style="margin:4px 0 0 16px;padding:0;font-size:0.95em;">
+              <li><strong>NVDA &#8212; RESTORE TO FULL SIZE:</strong> VIX reversal cancels the 25&#8211;30% size reduction from v4.5. GTC $190&#8211;195 limit restored to full size. NVDA now $207.83 &#8212; 6&#8211;9% above entry zone. 13 days to May 20 earnings. Window narrowing &#8212; if no dip, Phase C may not trigger.</li>
+              <li><strong>PLTR &#8212; NO ACTION:</strong> $133.43, thesis cracked below $140. No adds. Must reclaim $150+ to restore bull thesis.</li>
+              <li><strong>SHOP &#8212; NO ACTION:</strong> $107.63, post-earnings guidance-miss drift. Next earnings July 29. Wait for base formation.</li>
+              <li><strong>META &#8212; MONITOR ONLY:</strong> $613.03, stable. No catalyst until late-May Phase C eval.</li>
+              <li><strong>MACRO &#8212; BULLISH:</strong> US&#8211;Iran ceasefire + VIX reversal = risk-on. Bullish scenario confirmed. No scenario change.</li>
+            </ul>
+          </div>
+          <div style="font-size:0.85em;color:#aaa;">NVDA earnings May 20 (13 days) &#183; PLTR next earnings Aug 10 &#183; SHOP next earnings Jul 29 &#183; Kevin Warsh Fed Chair confirmation expected before June FOMC</div>
+        </div>
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">&#9654; May 6, 2026 (Wednesday AM) &#8212; v4.5 &#8212; &#128308; UNSCHEDULED: PLTR BELOW $140 (THESIS CRACKED) &#8226; SHOP -12% ON GUIDANCE MISS &#8226; VIX SPIKES ABOVE 18</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">UNSCHEDULED &#183; 72-hr cadence; material catalysts override &#183; PLTR broke below $140 threshold &#183; SHOP post-earnings result &#183; Next scheduled update: May 8, 2026 (Friday AM)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">CURRENT PRICES (May 5 close / May 6 pre-market):</strong>
+            PLTR ~$135.28 (DOWN -8.5% from $147.83 AH &#8212; BELOW $140 threshold) &#124; SHOP ~$112 est. (-12% post-earnings) &#124; NVDA ~$199.25 (flat, Phase C armed) &#124; META ~$603&#8211;610 (monitor only) &#124; TSLA ~$387 (excluded)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;"><strong style="color:#FF6600;">MARKET:</strong> VIX 18.29 (was 16.99 in v4.4) &#8212; ELEVATED, CROSSED 18 THRESHOLD &#124; QQQ ~$674.15, above 50-day MA (~$650), bullish &#124; Oil: WTI ~$102, Brent ~$126 (inflation risk) &#124; Fed: rates unchanged, no 2026 cuts expected &#124; Scenario: BULLISH but vol elevated &#8212; watch VIX</div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ol style="margin:6px 0 6px 18px;padding:0;">
+              <li style="margin-bottom:5px;"><strong>PLTR ($135.28) &#8212; THESIS CRACKED</strong> &#8212; Dropped ~8.5% from v4.4 AH print of $147.83. Now BELOW the $140 &#8220;thesis cracked&#8221; level set in v4.4. Sell-the-news momentum + HSBC downgrade (Hold, PT $151) dragging. <em>ACTION: Evaluate position now. Plan rule: below $140 = thesis cracked. If holding, decide cut or hold-to-recover. Must reclaim $150+ to restore bull thesis. Do NOT add here.</em></li>
+              <li style="margin-bottom:5px;"><strong>SHOP (~$112 est.) &#8212; EARNINGS MISS ON GUIDANCE, -12%</strong> &#8212; Q1 BEAT: rev $3.2B +34% YoY (vs $3.08B cons), GMV $101B +35%. BUT Q2 guidance &#8220;high-twenties&#8221; growth missed ~31% consensus. Pre-earnings $127.64 &rarr; post-earnings ~$112 (-12%). <em>ACTION: If entered per v4.4, stop-loss likely triggered. If still holding, re-assess: guidance-cut earnings drop differs from pre-earnings dip thesis. Consider exiting unless you believe guidance is conservative.</em></li>
+              <li style="margin-bottom:5px;"><strong>VIX 18.29 &#8212; CROSSED 18 THRESHOLD</strong> &#8212; Was 16.99 in v4.4. Now 18.29 (+7.65%). Plan v4.4 stated: &#8220;Re-evaluate sizing if VIX spikes &gt;18.&#8221; Trigger hit. <em>ACTION: Consider reducing NVDA Phase C GTC limit order size by 25&#8211;30% before it fills.</em></li>
+              <li style="margin-bottom:5px;"><strong>NVDA ($199.25) &#8212; PHASE C UNCHANGED</strong> &#8212; Essentially flat from v4.4&#8217;s $198.67. GTC limit $190&#8211;195 still live. Earnings May 20 (14 days). No new catalyst. <em>ACTION: GTC limit $190&#8211;195 stays live, but reduce lot size given VIX &gt;18 trigger hit.</em></li>
+            </ol>
+          </div>
+          <div style="font-size:0.88em;padding:6px 10px;background:rgba(255,100,0,0.10);border-radius:4px;">
+            <strong style="color:#FF6600;">&#9889; WEDNESDAY ACTIONS (in order):</strong>
+            (1) PLTR: Evaluate position &#8212; below $140 = thesis cracked per plan. Cut or hold decision today.
+            (2) SHOP: If entered per v4.4, assess stop-loss. Guidance miss changes the thesis.
+            (3) NVDA: VIX &gt;18 trigger hit &#8212; reduce GTC lot size before $190&#8211;195 fills.
+            (4) META: Monitor only. TSLA: NO ENTRY.
+            (5) Next full update: May 8, 2026 (Friday AM) unless new catalyst before then.
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">&#9654; May 5, 2026 (Tuesday AM) &#8212; v4.4 &#8212; &#128308; PLTR Q1 BEAT BUT WEAK TAPE (+1.5% AH ON 10% IMPLIED) &#8226; SHOP BMO EARNINGS TODAY &#8226; HSBC PLTR DOWNGRADE TO $151 &#8226; NVDA PHASE C STILL ARMED</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24-HOUR cadence &#183; Tuesday pre-market &#183; PLTR earnings DONE (May 4 AMC) &#183; SHOP earnings IMMINENT (May 5 BMO) &#183; Last update v4.3 May 4 AM (~24h ago) &#183; Reverting to 72-hour cadence after May 5 settle</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">CURRENT PRICES (May 4 close / May 5 pre-market &#8212; verify in E*Trade at open):</strong>
+            PLTR ~$147.83 (May 4 AH post-earnings, +1.47%) &#124; SHOP ~$127.64 (earnings TODAY BMO) &#124; NVDA ~$198.67 (range $194.74&#8211;$201.73, -8.4% from $216.61 ATH) &#124; META ~$609.70 (flat) &#124; TSLA ~$392.51 (excluded)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;"><strong style="color:#FF6600;">MARKET:</strong> VIX ~16.99 (May 4 close, stable low) &#124; QQQ ~$674.66 (May 5 open), well above 50-day MA &#124; Brief Persian Gulf shipping incident bumped crude AM May 5 then calmed; Friday April NFP key &#124; Scenario: BULLISH ACCELERATING &#8212; unchanged</div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ol style="margin:6px 0 6px 18px;padding:0;">
+              <li style="margin-bottom:5px;"><strong>PLTR Q1 BEAT &#8212; BUT REACTION UNDERWHELMING</strong> &#8212; EPS $0.33 vs $0.28 (+18% beat); rev $1.633B vs $1.54B (+85% YoY); FY26 guide raised to $7.65&#8211;$7.66B (+71% YoY, vs $7.27B prior cons). US commercial +133% YoY, US gov't +84% YoY. BUT only +1.47% AH to ~$147.83 vs options-priced &#177;10-11%. Sentiment exhaustion / sell-the-news. <em>ACTION: Treat as 'show-me' &#8212; needs to reclaim and hold $150+. Below $140 = thesis cracked. If holding, trail -10% from peak. Do NOT chase $147; wait $138&#8211;142 retest before adding.</em></li>
+              <li style="margin-bottom:5px;"><strong>SHOP EARNINGS TODAY (May 5 BMO) &#8212; DECISION DAY</strong> &#8212; Reports pre-open + 8:30am ET call. Consensus: rev $3.08B (+31% YoY), EPS $0.32 (+28% YoY), GMV +32%. Options pricing &#177;10.33%. Pre-earnings $127.64. <em>ACTION: Pre-define plan: hold-through, trim 25-33% on +8% gap-up, hard stop -8% on miss. If flat, do NOT chase gap-up >+5%; wait for $128&#8211;132 retest.</em></li>
+              <li style="margin-bottom:5px;"><strong>PLTR HSBC DOWNGRADE (NEW)</strong> &#8212; HSBC (Bersey) Buy &rarr; Hold, PT $205 &rarr; $151 (May 1, pre-earnings). Cited OpenAI/Anthropic competitive threat to PLTR no-code AI moat. Bull/bear gap widening (Wedbush $230, Mizuho $185, HSBC $151). <em>ACTION: Cap PLTR exposure at current size. No adds above $148. Tighten -10% trailing stop discipline.</em></li>
+              <li style="margin-bottom:5px;"><strong>NVDA PHASE C ENTRY ZONE STILL ARMED</strong> &#8212; $198.67 close May 4, -8.4% from $216.61 ATH. GTC limit $190&#8211;195 unchanged. Earnings May 20 (15 days). <em>ACTION: GTC limit $190&#8211;195 stays live. Watch Wed&#8211;Fri this week for the dip. Re-evaluate sizing if VIX >18 or QQQ breaks 50-day MA.</em></li>
+            </ol>
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">ANALYST UPDATES:</strong>
+            PLTR: HSBC Buy &rarr; Hold, PT $151 (DOWN). Wedbush Outperform $230 unchanged. Mizuho Outperform $185 (cut from $195 Apr 14). | SHOP: 31&#8211;32 analysts Buy consensus, avg PT $159.49 (+25% upside). | NVDA: AI-trade Buy reiterations continue.
+          </div>
+          <div style="font-size:0.88em;padding:6px 10px;background:rgba(255,100,0,0.10);border-radius:4px;">
+            <strong style="color:#FF6600;">&#9889; TUESDAY ACTIONS (in order):</strong>
+            (1) SHOP: Pre-define hold/trim/stop plan BEFORE the open. No improvising.
+            (2) PLTR: Set -10% trailing stop from any post-earnings peak. Do NOT chase $147.
+            (3) NVDA: GTC limit $190&#8211;195 stays live (Phase C dip target).
+            (4) META: Monitor only. TSLA: NO ENTRY.
+            (5) Cap PLTR sizing &#8212; HSBC bear case is publicly forming.
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">&#9654; May 4, 2026 (Monday AM) &#8212; v4.3 &#8212; &#128308; PLTR EARNINGS TONIGHT AMC &#8226; SHOP BMO TOMORROW &#8226; NVDA -8.5% FROM ATH (PHASE C ARMING) &#8226; FED HAWKISH HOLD (4 DISSENTS) &#8226; BREADTH WARNING</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24-HOUR cadence &#183; Monday pre-market &#183; PLTR earnings TODAY May 4 AMC &#183; SHOP earnings TOMORROW May 5 BMO &#183; Next update: May 5 AM post-PLTR-reaction + SHOP results</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">CURRENT PRICES (May 4 pre-market &#8212; verify in E*Trade at open):</strong>
+            PLTR ~$144.07 (flat from v4.2; earnings tonight) &#124; SHOP ~$127.41 (Phase B zone lower edge) &#124; NVDA ~$198.12 (-8.5% from $216.61 ATH Apr 27) &#124; META ~$608.75 (no fresh data) &#124; TSLA ~$390.82 (excluded)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;"><strong style="color:#FF6600;">MARKET:</strong> VIX ~16.78 (stable low) &#124; QQQ ~$674.15 (+0.96%), well above 50-day MA (~$650) &#124; S&amp;P + Nasdaq at fresh ATHs &#124; Scenario: BULLISH ACCELERATING &#8212; unchanged</div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ol style="margin:6px 0 6px 18px;padding:0;">
+              <li style="margin-bottom:5px;"><strong>SHOP PHASE B ENTRY EXECUTABLE TODAY</strong> &#8212; $127.41 at lower edge of $128&#8211;132 zone. Earnings BMO tomorrow. Avg PT $159.49 (+25%). <em>ACTION: Open $125&#8211;132 &rarr; ENTER AT MARKET. Gap below $125 &rarr; WAIT, do not chase BMO gap-down.</em></li>
+              <li style="margin-bottom:5px;"><strong>PLTR EARNINGS TONIGHT (May 4 AMC) &#8212; FINAL STATE</strong> &#8212; Price ~$144.07. Consensus: $0.28 EPS (+115% YoY), $1.54B rev (+74% YoY). Avg PT $196.22 (+36%). Beat 10 quarters running. Caution: options positioning lower despite bullish analysts. Expected move ~10-11%. <em>ACTION: SET HARD STOP-LOSS BEFORE 4:00pm ET (suggest -8% from cost basis). Do NOT chase new entry into AMC.</em></li>
+              <li style="margin-bottom:5px;"><strong>NVDA -8.5% FROM ATH &#8212; PHASE C ENTRY ARMING</strong> &#8212; Hit fresh ATH $216.61 on Apr 27, now ~$198.12 in 5 sessions. Satisfies 3%+ pre-earnings dip trigger. Earnings May 20 = 16 days. <em>ACTION: Set GTC limit buy $190&#8211;195. If gaps to $185&#8211;190 &rarr; enter at market.</em></li>
+              <li style="margin-bottom:5px;"><strong>NEW RISK &#8212; FED HAWKISH HOLD WITH 4 DISSENTS</strong> &#8212; April 29 FOMC held 3.50-3.75% but with 4 dissents (FIRST since Oct 1992). Powell flagged oil-driven inflation. Market shrugged it off (ATH next day) but raises floor risk. <em>ACTION: Tighten trailing stops to -10% from post-entry peak (not from cost basis).</em></li>
+              <li style="margin-bottom:5px;"><strong>NEW RISK &#8212; MARKET BREADTH NARROWEST SINCE DOTCOM</strong> &#8212; Index gains concentrated in handful of mega-cap AI (NVDA, BRCM, etc.). Plan IS in this basket &#8212; helpful short-term, fragile long-term. <em>ACTION: Do NOT increase allocation beyond v4.0 sizing levels.</em></li>
+            </ol>
+          </div>
+          <div style="font-size:0.88em;padding:6px 10px;background:rgba(255,100,0,0.10);border-radius:4px;">
+            <strong style="color:#FF6600;">&#9889; MONDAY ACTIONS (in order):</strong>
+            (1) PLTR: Hard stop-loss set BEFORE 4:00pm ET AMC.
+            (2) SHOP: Phase B entry today $125&#8211;132 = market; below $125 = WAIT.
+            (3) NVDA: GTC limit $190&#8211;195 (Phase C entry zone now armed).
+            (4) Tighten existing position trailing stops to -10% from post-entry peak.
+            (5) NO TSLA. NO new sizing increases.
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">&#9654; May 3, 2026 (Sunday) &#8212; v4.2 &#8212; &#128308; MATERIAL: NVDA EARNINGS DATE CHANGED (MAY 20 NOT MAY 27) &#8226; PLTR EARNINGS TOMORROW AMC &#8226; SHOP AH CONFIRMED</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24-HOUR cadence &#183; Sunday (markets closed) &#183; PLTR earnings May 4 AMC = tomorrow &#183; SHOP earnings May 5 BMO = 2 days &#183; Next update: May 4 post-PLTR-earnings</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">CURRENT PRICES (May 2 AH &#8212; verify Monday pre-market):</strong>
+            PLTR ~$144.41 (flat, earnings tomorrow) &#124; SHOP ~$127.64 AH (holds v4.1 gains) &#124; NVDA ~$198.12 &#124; META ~$608.80 &#124; TSLA ~$390.82
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;"><strong style="color:#FF6600;">MARKET:</strong> VIX ~16.88 (stable, bullish) &#124; QQQ $674.78 record high, above 50-day MA (~$610) &#124; Scenario: BULLISH ACCELERATING &#8212; unchanged</div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ol style="margin:6px 0 6px 18px;padding:0;">
+              <li style="margin-bottom:5px;"><strong>&#8203;NVDA EARNINGS DATE: MAY 20 (NOT MAY 27)</strong> &#8212; NVIDIA confirmed Q1 FY2027 call for May 20, 2026 (7 days earlier than plan). <em>ACTION: Shift Phase C NVDA entry window to ~May 13&#8211;17 dip. Target: $190&#8211;195.</em></li>
+              <li style="margin-bottom:5px;"><strong>PLTR EARNINGS TOMORROW (May 4 AMC)</strong> &#8212; Analyst consensus: $0.28 EPS (+115% YoY), $1.54B rev (+74% YoY). Wedbush $230 PT, Oppenheimer $200 Buy. Options pricing &#177;10.55% move ($129&#8211;$159 range). <em>ACTION: If holding, set stop-loss plan BEFORE 4pm ET. If not in, do NOT chase into earnings.</em></li>
+              <li style="margin-bottom:5px;"><strong>SHOP AH CONFIRMED at $127.64</strong> &#8212; v4.1 guidance stands. Phase B entry valid at open if $127&#8211;132. 32 analysts: Buy, avg PT $164.44. Earnings May 5 BMO. <em>ACTION: Use v4.1 entry rules &#8212; NOT the stale $118&#8211;120 limit.</em></li>
+              <li style="margin-bottom:5px;"><strong>ANALYST UPGRADES:</strong> Oakoff Buy PLTR (Apr 30), Wedbush reiterates $230, Oppenheimer new Buy $200 PLTR; NVDA multiple Buy upgrades. No downgrades on plan tickers.</li>
+            </ol>
+          </div>
+          <div style="font-size:0.88em;padding:6px 10px;background:rgba(255,100,0,0.10);border-radius:4px;">
+            <strong style="color:#FF6600;">&#9889; MONDAY OPEN ACTIONS:</strong>
+            (1) SHOP Phase B entry: $127&#8211;132 = market; $124&#8211;126 = GTC $125&#8211;127. Do NOT use $118&#8211;120.
+            (2) PLTR: Stop-loss plan set before 4pm ET AMC.
+            (3) NVDA: Calendar = May 20. Entry window May 13&#8211;17.
+            (4) NO TSLA.
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ May 2, 2026 (PM) — v4.1 — 🔴 AMENDMENT TO v4.0: SHOP RALLIED TO ~$127.70 IN EXTENDED HOURS — REVISED PHASE B PLAYBOOK</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">Same-day intraday amendment · Saturday PM · Trigger: user chart showing SHOP +5.4% from Friday close in AH/overnight · Next full update: May 4 (Monday)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">UPDATED PRICE — SHOP:</strong>
+            SHOP ~$127.70 (AH/overnight, +5.4% from Friday $121.13 close) | VIX ~16.99 (benign) | Other tickers: no AH data — still on Friday closes (PLTR $144.99, NVDA $199.57, META $608.75, TSLA $390.82)
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">WHY THIS CHANGES THE PLAN:</strong>
+            <ul style="margin:4px 0 0 16px;padding:0;">
+              <li>v4.0 SHOP guidance (GTC $118-120 / market ~$121) is <strong>STALE</strong>. A $118-120 limit will sit unfilled if SHOP opens near $127-130 → no Phase B trade for SHOP.</li>
+              <li>SHOP +5.4% AH alongside PLTR +5.78% Friday: BOTH tickers pricing in earnings strength → buy-the-dip thesis weakening for both. Lean toward EXECUTE-OR-SKIP Monday open.</li>
+              <li>SHOP now at the <strong>lower edge of Phase B zone $128-132</strong>, not 6-9% below it.</li>
+            </ul>
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#FF6600;">⚡ REVISED MONDAY OPEN PLAYBOOK — SHOP:</strong>
+            <ol style="margin:4px 0 0 16px;padding:0;">
+              <li><strong>VERIFY</strong>: Re-check SHOP pre-market 9:00-9:30 ET. AH moves can fade or extend. Re-anchor on the actual opening print.</li>
+              <li><strong>BASE CASE</strong> (opens $127-132, inside zone): ENTER AT MARKET on the open. Validated Phase B entry — earnings Tuesday BMO.</li>
+              <li><strong>DIP CASE</strong> (fades to $124-126): GTC limit $125-127 to catch the fade. Convert to market if unfilled by midday.</li>
+              <li><strong>CHASE CASE</strong> (gaps above $132): SKIP Phase B (zone violated) OR market entry accepting full earnings risk. Do NOT lower-limit chase.</li>
+              <li><strong>DO NOT</strong> use the v4.0 "$118-120" limit. That guidance is dead.</li>
+            </ol>
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#FF6600;">⚡ READ-ACROSS:</strong>
+            PLTR already in chase territory at $144.99 — AH SHOP rally reinforces: Phase B "dip" setup broken across both. Skip-or-chase only. NVDA / META / TSLA: no change to v4.0.
+          </div>
+          <div style="font-size:0.88em;color:#aaa;font-style:italic;">
+            CAVEAT: Extended-hours prints come from thin venues and can revert by Monday open. Verify the live regular-session opening price before placing any order.
+          </div>
+        </div>
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ May 2, 2026 — v4.0 — 🔴 MATERIAL: PLTR +5.78% TO $145 (RIPS PAST PHASE B ZONE), SHOP HOLDS $121 — PHASE B WINDOW OPEN, VIX 16.88, QQQ RECORD</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Saturday · Prices: Friday May 1 close (markets closed) · Next update: May 4 (Monday — PLTR earnings day)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">PRICES (May 1 close):</strong>
+            PLTR $144.99 🚀+5.78% (rallied past Phase B zone) |
+            SHOP $121.13 ↑+0.97% (held — Phase B window open) |
+            NVDA $199.57 (flat, $195 support held) |
+            META $608.75 🔻-3.5% (capex bleed continues) |
+            TSLA $390.82 ↑+4.8% (excluded)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#4CAF50;">MARKET:</strong>
+            VIX 16.88 🔻-10.3% ✅ LOWEST OF CYCLE |
+            QQQ $674.78 ↑+2.0% NEW RECORD (way above 50-day ~$610) |
+            Nasdaq 25,114 first-ever close above 25K |
+            Scenario: BULLISH ACCELERATING — AAPL/GOOGL beats reversed META capex anxiety
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ul style="margin:4px 0 0 16px;padding:0;">
+              <li>🚀 <strong>PLTR +5.78% to $144.99</strong> — Pre-earnings dip REVERSING. Oppenheimer init Outperform $200 PT, Wedbush reiterated $230. Phase B zone $128-132 now 9-12% below market. Dip-buy thesis dead.</li>
+              <li>🟢 <strong>SHOP held $121 (+0.97%)</strong> — Still below Phase B zone $128-132. Earnings Tuesday May 5 BMO. Highest-conviction Phase B trade.</li>
+              <li>🔻 <strong>META -3.5% to $608.75</strong> — Capex shock continued bleeding Friday. Watch $600. Possible Phase C setup if it stabilizes.</li>
+              <li>✅ <strong>VIX collapsed to 16.88 (-10.3%)</strong> — Volatility fully exhausted. Bullish risk-on confirmed.</li>
+              <li>🏛️ <strong>Fed Warsh — Senate Banking Committee endorsed 13-11</strong> (party line). Full Senate vote pending. Already priced since Jan 30 nomination — no fresh trade impact.</li>
+              <li>🌍 <strong>Iran peace proposal Friday</strong> — Supportive risk-on backdrop, already reflected in VIX/QQQ.</li>
+            </ul>
+          </div>
+          <div style="font-size:0.92em;">
+            <strong style="color:#FF6600;">⚡ ACTIONS (Monday May 4 open):</strong>
+            <ol style="margin:4px 0 0 16px;padding:0;">
+              <li>🔴 <strong>SHOP Phase B entry</strong>: GTC limit $118-120 OR market ~$121 — earnings Tuesday BMO. #1 PRIORITY.</li>
+              <li>📅 <strong>PLTR decision at open</strong>: Skip Phase B (rallied past zone) OR accept full earnings risk at market ~$145. Do NOT mechanically lower-limit-chase.</li>
+              <li>📊 <strong>META</strong>: Monitor $600 support — possible Phase C later in week.</li>
+              <li>📊 <strong>NVDA</strong>: Monitor only. Earnings May 27.</li>
+              <li>🏛️ <strong>Fed</strong>: Track Warsh full-Senate vote timing. No trade lever.</li>
+              <li>🚫 <strong>TSLA</strong>: Excluded per v1.2.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ May 1, 2026 — v3.9 — 🔴 MATERIAL: SHOP -11.3% CRASHES THROUGH PHASE B ZONE, NVDA -6%, PLTR EARNINGS 3 DAYS AWAY</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Friday · Prices: Apr 30 close / May 1 intraday · Next update: May 4 (Monday — PLTR earnings day)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">PRICES:</strong>
+            PLTR ~$137.07 (flat) |
+            SHOP ~$119.97 🔻-11.3% (BLOWN THROUGH Phase B zone) |
+            NVDA ~$200.15 🔻-6.0% (competition fears) |
+            META ~$631 (flat, digesting capex shock) |
+            TSLA ~$372.80 (flat)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#4CAF50;">MARKET:</strong>
+            VIX ~18.81 ✅ BULLISH (sub-20) |
+            QQQ $661.57 Apr 30 close ✅ above 50-day MA ($606) |
+            Scenario: BULLISH MAINTAINED — but sector under pressure from NVDA competition + META capex debate
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">MATERIAL CHANGES:</strong>
+            <ul style="margin:4px 0 0 16px;padding:0;">
+              <li>🔻 <strong>SHOP -11.3% to $120</strong> — Phase B entry zone ($128-132) blown through. Cause: 2026 macro selloff + valuation (75x fwd P/E). Earnings May 5 BMO = 2 trading days. ENTRY WINDOW NOW.</li>
+              <li>🔻 <strong>NVDA -6.0% to $200</strong> — Google TPU external sales + Amazon custom chip business "booming." Monitor only, earnings May 27. Watch $195 support.</li>
+              <li>📅 <strong>PLTR earnings May 4 AMC</strong> — 1 trading day away. Options pricing 10.55% swing. Phase B zone $128-132 not yet hit ($137 current). LAST CHANCE for Phase B GTC today.</li>
+              <li>⚠️ <strong>Fed Chair transition</strong> — Powell exits May 15. Dovish nominee (Hassett/Warsh) = risk-on rally = could lift PLTR/SHOP above entry zones before earnings.</li>
+            </ul>
+          </div>
+          <div style="font-size:0.92em;">
+            <strong style="color:#FF6600;">⚡ ACTIONS TODAY (May 1):</strong>
+            <ol style="margin:4px 0 0 16px;padding:0;">
+              <li>🔴 <strong>SHOP Phase B entry</strong>: Limit $115-118 or market ~$120 — earnings in 2 trading days</li>
+              <li>📅 <strong>PLTR GTC at $132-133</strong>: Last chance before May 4 AMC — place today</li>
+              <li>📊 <strong>NVDA</strong>: Monitor only, watch $195</li>
+              <li>🏛️ <strong>Fed Chair watch</strong>: Dovish pick = raise limits; hawkish = plan intact</li>
+              <li>🚫 No new entries in META, TSLA, NVDA this week</li>
+            </ol>
+          </div>
+        </div>
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 30, 2026 — v3.8 — 🔴 MATERIAL: META -6% AH ON CAPEX SHOCK, PLTR PRE-EARNINGS DIP STARTED (-6%), PHASE A EXPIRES COB TODAY, PHASE B BEGINS</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Thursday · Prices: Apr 29 close + Apr 30 AH · Next update: May 1 (Friday) — Phase A close-out + Phase B GTC levels</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">PRICES:</strong>
+            PLTR $137.32 🔻-6.0% |
+            SHOP $135.31 (flat) |
+            NVDA ~$213 (flat, ATH $216.61 hit Apr 27) |
+            META ~$632 AH 🔻-6.2% (capex shock) |
+            TSLA ~$376 (flat)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">MARKET:</strong>
+            VIX 17.83 (↓ from 19.2, still &lt;20 ✅) · QQQ $657.55 (-1.0%) above 50-day MA ✅ · Scenario: <span style="color:#00CC44;font-weight:700;">BULLISH MAINTAINED</span> · AI capex narrative under pressure
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">CHANGES:</strong>
+            <ol style="margin:4px 0 0 18px;padding:0;">
+              <li><strong>🔴 META Q1 BEAT BUT CAPEX SHOCKED</strong> — EPS $10.44 vs $6.71 est, rev $56.31B (+33% YoY). BUT 2026 capex guide raised $115-135B → $125-145B. Stock -6% AH (~$674→~$632). Negative read-through for AI infra plays incl. PLTR.</li>
+              <li><strong>🔻 PLTR PRE-EARNINGS DIP CONFIRMED</strong> — $146→$137.32 (-6.0% / 24h). 5-day high ~$148, now -7.2% off high (>3% threshold). $133 GTC now only 3.2% below market — fill probability has risen meaningfully. Apr 28 analyst downgrade also weighing.</li>
+              <li><strong>📅 PHASE A EXPIRES COB TODAY</strong> — SHOP $113 GTC zero fill chance (CANCEL NOW). PLTR $133 GTC has small but rising chance — let it ride to close, then cancel if unfilled.</li>
+              <li><strong>🚀 PHASE B BEGINS TODAY</strong> — PLTR May 4 AMC / SHOP May 5 BMO earnings within 5 trading days. Preliminary Phase B entry zones: PLTR $128-132 / SHOP $128-132. Wait 1-2 days for META aftermath to settle.</li>
+              <li><strong>⚠️ ANALYST DOWNGRADE PLTR (Apr 28)</strong> — Triggered -1.3% drop; momentum compounded into Apr 29. Sentiment shifted to caution. Keep Phase B size conservative — do not oversize on dip.</li>
+            </ol>
+          </div>
+          <div style="font-size:0.92em;border-top:1px solid rgba(204,0,0,0.3);padding-top:8px;margin-top:4px;">
+            <strong style="color:#FF6600;">⚡ ACTIONS:</strong>
+            <span style="color:#FF0000;font-weight:700;">#1 CANCEL SHOP $113 GTC (zero fill chance).</span>
+            Let PLTR $133 GTC ride to COB; cancel if unfilled.
+            <span style="color:#FFAA00;font-weight:700;">DO NOT open new positions today</span> — wait for META aftershock to settle.
+            On May 1, set Phase B GTCs in $128-132 zone for PLTR/SHOP based on price action.
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 29, 2026 — v3.7 — 🔴 MATERIAL: FOMC HOLD CONFIRMED, SHOP +8.2%, META EARNINGS AH NOW, PHASE A ENDS COB TOMORROW</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Wednesday · Prices: Apr 29 close/AH · Next update: April 30 (Phase A expiry + META reaction)</div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">PRICES:</strong>
+            PLTR ~$146 (flat) |
+            SHOP $135.31 🚀+8.2% |
+            NVDA $213.17 +2.4% |
+            META AH tonight (earnings) |
+            TSLA ~$374 (flat)
+          </div>
+          <div style="margin-bottom:6px;font-size:0.92em;">
+            <strong style="color:#FF6600;">MARKET:</strong>
+            VIX ~19.2 (↑ slight, still &lt;20 ✅) · QQQ $663.95 &gt; 50-day MA ✅ · Scenario: <span style="color:#00CC44;font-weight:700;">BULLISH MAINTAINED</span>
+          </div>
+          <div style="margin-bottom:8px;font-size:0.92em;">
+            <strong style="color:#CC0000;">CHANGES:</strong>
+            <ol style="margin:4px 0 0 18px;padding:0;">
+              <li><strong>✅ FOMC HOLD CONFIRMED</strong> — Fed held 3.50–3.75% as expected. VIX did NOT spike &gt;20. Bullish intact. Powell's final meeting (Warsh succeeds May).</li>
+              <li><strong>🚀 SHOP +8.2% TODAY</strong> ($125→$135.31) — $113 GTC now 16.5% below market. Phase A fill probability = ZERO. <span style="color:#FF0000;font-weight:700;">CANCEL SHOP $113 GTC IMMEDIATELY.</span></li>
+              <li><strong>📊 META EARNINGS AH TONIGHT</strong> — Consensus $6.71 EPS / $55.56B rev (+31% YoY). 93% market-implied beat probability. Watch CapEx guidance ($60–65B AI infra) — any increase could pressure stock.</li>
+              <li><strong>⚖️ SCOTUS STRUCK DOWN GLOBAL TARIFFS</strong> — 6-3 ruling against IEEPA tariff authority. Removes major macro overhang for tech. Bullish for Phase B thesis.</li>
+              <li><strong>📅 PHASE A DEADLINE COB APRIL 30</strong> — Both GTC limits expire tomorrow. SHOP cancel NOW. PLTR cancel by COB tomorrow if unfilled.</li>
+            </ol>
+          </div>
+          <div style="font-size:0.92em;border-top:1px solid rgba(204,0,0,0.3);padding-top:8px;margin-top:4px;">
+            <strong style="color:#FF6600;">⚡ ACTIONS:</strong>
+            <span style="color:#FF0000;font-weight:700;">#1 CANCEL SHOP $113 GTC NOW.</span>
+            Cancel PLTR $133 GTC by COB Apr 30 if unfilled.
+            Watch META AH tonight — beat+neutral CapEx=Phase B green light; miss=reassess levels.
+            Phase B starts May 4 (PLTR AMC) / May 5 (SHOP BMO).
+          </div>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 28, 2026 — v3.6 — 🔴 MATERIAL: SHOP DATE CONFIRMED, QQQ SURGE +4%, FOMC IN SESSION, META EARNINGS AH TOMORROW</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Tuesday · Prices: Apr 28 intraday · Next update: April 29 (Wed) post-FOMC/META reaction</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">VERIFIED PRICES (Apr 28 intraday — confirm in E*Trade):</strong>
+            PLTR ~$146.39 (↑+2.8%) · SHOP ~$125.00 (flat) · NVDA $208.27 (flat) · META ~$674.28 (≈flat) · TSLA ~$374.80 (↓~$1.50)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX 18.17 (↓ from 18.71, BULLISH) · QQQ ~$663.95 (↑+4.1% from $637.40, well above 50d MA) ✅ · Nasdaq +15% for April · SOX +40% for April · Scenario: <strong>BULLISH STRONGLY CONFIRMED</strong></div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>✅ SHOP EARNINGS DATE RESOLVED — May 5 BMO CONFIRMED</strong> (Shopify IR / StockTitan). v3.5 #1 priority action is CLOSED. April 30 date on TipRanks was a data error. SHOP $113 GTC remains ACTIVE through Apr 30 Phase A deadline.<br>
+              &nbsp;&nbsp;→ No action required. SHOP $113 GTC valid.</li>
+            <li><strong>🚀 QQQ SURGE +4.1% TODAY</strong> — ~$663.95 vs $637.40 Apr 25 close. Nasdaq +15% in April; SOX +40% (18-day win streak, most overbought in 15 years per Bloomberg). Full AI/tech momentum rally. Bullish thesis STRONGLY reinforced — but elevated reversal risk if FOMC or mega-cap earnings disappoint.<br>
+              &nbsp;&nbsp;→ Bullish scenario MAINTAINED. No limit changes. Overbought conditions = heightened vol risk on any miss.</li>
+            <li><strong>🏛️ FOMC IN SESSION TODAY — Decision TOMORROW (Wed Apr 29, 2pm ET), Powell presser 2:30pm.</strong> Hold at 3.50–3.75% expected (~99%). Key risk: hawkish Powell language on tariff-driven goods inflation. Same-day collision with META/MSFT/GOOGL/AMZN AH earnings.<br>
+              &nbsp;&nbsp;→ <strong>HARD RULE:</strong> VIX &gt;20 intraday Wednesday → scenario flips NEUTRAL → consider cancelling SHOP $113 GTC.</li>
+            <li><strong>📅 PHASE A DEADLINE: 2 DAYS LEFT (Apr 30 COB)</strong> — PLTR $133 GTC now 9.0% below market as PLTR rallies to $146.39 ahead of May 4 earnings. SHOP $113 GTC 10.4% below market. Fill probability on PLTR declining. Do NOT lower limits to chase.<br>
+              &nbsp;&nbsp;→ Both limits stand per plan rules. Cancel both by COB Apr 30 if unfilled.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS (Tue Apr 28 → Wed Apr 29):</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>✅ <strong>SHOP DATE CLOSED</strong> — May 5 BMO confirmed. No action needed.</li>
+            <li>📊 <strong>WATCH META AH TOMORROW</strong> — Consensus $6.73 EPS / $55.46B rev. Beat + neutral FOMC = bullish PLTR read-through. Miss or hawkish Fed = scenario warning.</li>
+            <li>🏛️ <strong>FOMC WATCH (Wed 2pm ET)</strong> — Rate hold expected. VIX &gt;20 intraday → flip NEUTRAL.</li>
+            <li>📅 <strong>PHASE A DEADLINE Apr 30 COB</strong> — Both GTC limits ACTIVE. Cancel unfilled limits by COB April 30. Do NOT lower to chase.</li>
+            <li>🗓️ Next update: April 29 (Wednesday) — post-FOMC decision + META earnings reaction.</li>
+          </ul>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 27, 2026 — v3.5 — 🔴 MATERIAL: FOMC STARTS TOMORROW, META+MAG7/FOMC COLLISION WED, PLTR ANALYST MOMENTUM, SHOP DATE VERIFY</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Monday · Prices: Apr 26 close · Next update: April 28 (Tue pre-FOMC)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">VERIFIED PRICES (Apr 26 close — confirm in E*Trade):</strong>
+            PLTR ~$142.39 (↓0.5%) · SHOP ~$125.00 (↓0.7%) · NVDA $208.27 (flat) · META ~$675.05 (flat) · TSLA $376.30 (flat)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX 18.71 (flat, BULLISH) · QQQ ~$637.40 above 50d MA ($600.76) ✅ · Scenario: <strong>BULLISH MAINTAINED</strong>. No price moves &gt;5% from entry limits — no recalculation needed.</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>🏛️ FOMC STARTS TOMORROW (Tue Apr 28 → decision Wed Apr 29 2pm ET)</strong> — Rate hold ~99% (3.50–3.75%). No dot plot. Risk = Powell hawkish on tariff-driven goods inflation → VIX spike.<br>
+              &nbsp;&nbsp;→ HARD RULE: VIX &gt;20 intraday Wed → NEUTRAL scenario → consider cancelling both GTCs early.</li>
+            <li><strong>📅 WEDNESDAY MEGA-EVENT COLLISION — META + MSFT + GOOGL + AMZN all AH + FOMC same day.</strong> META consensus: $6.73 EPS / $55.46B rev. UBS PT $908. Peak volatility day of Q2.<br>
+              &nbsp;&nbsp;→ META beat + neutral Fed = bullish for PLTR/SHOP thesis. Either miss = scenario risk.</li>
+            <li><strong>📈 PLTR ANALYST MOMENTUM — DZ Bank Buy $175 (Apr 23) · Morgan Stanley "strong setup" · Rosenblatt Buy $200 · USDA AI contract $300M.</strong> Short squeeze potential on May 4 beat. PLTR $133 GTC thesis strengthened.</li>
+            <li><strong>⚠️ SHOP EARNINGS DATE — VERIFY TODAY:</strong> Plan has May 5 BMO (Shopify official IR). TipRanks &amp; Investing.com show April 30 BMO. Data discrepancy — must confirm.<br>
+              &nbsp;&nbsp;→ <strong style="color:#FF6600;">If April 30 confirmed → CANCEL $113 GTC by COB TUESDAY April 28.</strong> Check shopifyinvestors.com or E*Trade now.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS (Mon Apr 27 → pre-market Wed Apr 29):</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>⚠️ <strong>#1 PRIORITY: VERIFY SHOP EARNINGS DATE</strong> — shopifyinvestors.com or E*Trade. May 5 vs April 30. Do this today.</li>
+            <li>📊 <strong>NO NEW ORDERS</strong> — Phase A GTCs (PLTR $133 / 4 sh, SHOP $113 / 6 sh) ACTIVE until April 30.</li>
+            <li>👀 <strong>WEDNESDAY WATCH</strong> — FOMC 2pm ET → Powell 2:30pm → META/MSFT/GOOGL/AMZN AH. Set VIX alerts.</li>
+            <li>📅 <strong>GTC DEADLINE FIRM</strong> — Cancel both unfilled limits by COB April 30 (Phase B begins May 5).</li>
+            <li>🗓️ Next update: April 28 (Tuesday) — final pre-FOMC update.</li>
+          </ul>
+        </div>
+
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 26, 2026 — v3.4 — 🔴 MATERIAL: V3.3 PRICE/VIX CORRECTIONS + FOMC/MAG7 WEEK SETUP</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Sunday — markets closed; reporting on April 24 verified close + week-ahead setup · Next update April 27 (Mon close)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">VERIFIED PRICES (Apr 24 close):</strong>
+            PLTR $143.09 ✓ · SHOP ~$125.90 ✓ · NVDA $208.27 ✓ · META <strong>$675.05 (↑ +2.41%) ⚠️ CORRECTION</strong> from v3.3's "~$662" · TSLA $376.30 ✓</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX <strong>18.71 ⚠️ CORRECTION</strong> from v3.3's 19.31 — VIX actually DROPPED below 19 · QQQ above 50d MA ✅ · Scenario: BULLISH (REINFORCED — corrected). Sub-19 VIX + record Nasdaq/S&P heading into FOMC week from strength.</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>⚠️ V3.3 STALE FIGURES CORRECTED</strong> — VIX 18.71 (not 19.31), META $675.05 (not $662). BOTH corrections more bullish than v3.3 reflected. No new bearish signals; sizing unchanged.</li>
+            <li><strong>🏛️ FOMC APR 28–29</strong> — ~99% rate hold (3.50–3.75%). Powell's possibly LAST meeting (Kevin Warsh nominated, Senate hearing held). Risk = hawkish tone on sticky inflation. Hard rule: VIX > 20 intraday Wed → NEUTRAL scenario, consider cancelling SHOP $113.</li>
+            <li><strong>📅 META AH WED APR 29</strong> — Consensus $6.73 EPS / $55.46B rev (+31% YoY). Evercore PT $900 Buy ("modest beat & bracket"). LSEG mean PT $846 (+25% upside). META at $675 ran +2.4% Fri INTO earnings — risk/reward less favorable for entries; FOMC + META same day = peak vol.</li>
+            <li><strong>📅 EARNINGS DATES CONFIRMED</strong> — PLTR May 4 AH · SHOP May 5 BMO · NVDA May 20 · META Apr 29 AH. SHOP BMO timing = gap risk pre-open May 5.</li>
+            <li><strong>🗓️ MAG 7 EARNINGS WEEK</strong> — Five of Mag 7 report; AAPL, AMZN, MSFT also. Tech tape will dominate. Peak vol = Wed Apr 29 (FOMC decision + META AH same day).</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS (Sun Apr 26 prep → Mon Apr 27 open):</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>📊 <strong>NO NEW ORDERS</strong> — Phase A GTCs (PLTR $133 / 4 sh, SHOP $113 / 6 sh) remain ACTIVE. Plan handles itself.</li>
+            <li>🎯 <strong>MONDAY OPEN WATCH</strong> — Pre-FOMC weakness could push SHOP -3 to -5% → $113 in striking distance. PLTR break below $140 re-engages $133 fill probability.</li>
+            <li>⚠️ <strong>TUE/WED FOMC + META AH</strong> — Peak volatility. VIX > 20 intraday Wed = scenario flips NEUTRAL → reduce sizing, consider cancelling SHOP $113.</li>
+            <li>📅 <strong>GTC DEADLINE FIRM</strong> — Cancel both unfilled limits APRIL 30 (Phase B day). Avoid overnight earnings exposure on stale GTCs (PLTR May 4 AH / SHOP May 5 BMO).</li>
+            <li>🗓️ Next update: April 27 (Monday close — final 24h cadence update before FOMC; Phase A window April 24–27).</li>
+          </ul>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 25, 2026 — v3.3 — 🔴 MATERIAL: TECH RECORD HIGHS, NVDA +4.3% AI SURGE, SHOP DIP DEEPENS</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Saturday — markets closed; reporting on April 24 close · Next update April 26 (Sun)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">PRICES (Apr 24 close):</strong>
+            PLTR $143.09 (↑ +1.07%) · SHOP ~$125.90 (↓ from prior reported $131) 🎯 · NVDA $208.27 (↑ +4.32%) 🔥 retook $5T · META ~$662 (mild gain) · TSLA $376.30 (↑ +0.69%)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX 19.31 (flat, sub-20) · QQQ ~$655.95 above 50d MA ✅ · Nasdaq 24,836.60 (+1.63%) 🏆 RECORD · S&P 7,165.08 (+0.80%) 🏆 RECORD · Dow 49,230.71 (-0.16%) · Scenario: BULLISH (REINFORCED)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>🔥 NVDA AI RALLY</strong> — +4.32% to $208.27, retook $5T market cap. Driven by Intel +23.6% earnings blowout, AMD +13.9%, semis up 18 STRAIGHT DAYS — strongest semi rally on record. NVDA monitor-only (May 20 earnings). Spillover positive for PLTR/META AI thesis.</li>
+            <li><strong>📉 SHOP DIP DEEPENS</strong> — ~$125.90 (v3.2 reported ~$131; that figure appears stale/incorrect). From 5-day high $131.96 (Apr 22) to ~$125.90 = -4.6%. Pre-earnings dip active. $113 GTC now ~10.2% below market (was ~14%). Fill probability meaningfully HIGHER. Another -3 to -5% Monday → $113 in striking distance.</li>
+            <li><strong>📈 PLTR MILD BOUNCE</strong> — +1.07% to $143.09. Still in pre-earnings dip zone vs $150 5-day high. $133 GTC now ~7.0% below market (was 6.4%). If FOMC-week selling pushes PLTR back below $140, $133 GTC re-engaged.</li>
+            <li><strong>🏆 NASDAQ + S&P RECORD HIGHS</strong> — Tech leadership decisively reasserted. Removes 'fragile bullish' caveat from v3.2. VIX flat at 19.31 confirms. NEUTRAL trigger unchanged: VIX > 20 on FOMC.</li>
+            <li><strong>📅 EARNINGS DATES UNCHANGED</strong> — META Apr 29 AH (consensus $6.73 EPS, $55.46B rev; UBS $908 / Guggenheim $850 Buy) · PLTR May 4 AH ($0.28 EPS / $1.54B rev consensus; MS flags 'strong setup') · SHOP May 5 BMO · NVDA May 20.</li>
+            <li><strong>🏛️ FOMC APR 28–29</strong> — 99.5% implied probability of NO rate change (3.50–3.75% target). No new dot plot. Risk = hawkish tone re: sticky inflation. META AH + FOMC same day (Apr 29) = peak volatility window.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS (Sun Apr 26 prep → Mon Apr 27 open):</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>📊 <strong>NO NEW ORDERS</strong> — PLTR $133 (4 sh) + SHOP $113 (6 sh) GTC limits remain active. Phase A handles itself.</li>
+            <li>🎯 <strong>WATCH SHOP MONDAY</strong> — has dropped meaningfully; another -3 to -5% open puts $113 within reach.</li>
+            <li>🔥 PLTR requires no action — FOMC-week pressure could re-engage $133 fill if it slips back below $140.</li>
+            <li>⚠️ FOMC Tue–Wed + META AH Wed — Peak volatility. VIX > 20 = scenario flips NEUTRAL → reduce sizing, consider cancelling SHOP $113.</li>
+            <li>📅 GTC DEADLINE: Cancel both by APRIL 30 if unfilled (PLTR earns May 4 AH).</li>
+            <li>🗓️ Next update: April 26 (Sunday — 24h cadence; Phase A window April 24–27).</li>
+          </ul>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 24, 2026 — v3.2 — 🔴 MATERIAL: PLTR -7.2% (PRE-EARNINGS DIP), TSLA -3.6% (CAPEX SHOCK), PHASE A DAY</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · PHASE A ENTRY TODAY — GTC limits active · Next update April 25</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">PRICES:</strong>
+            PLTR ~$141.54 (↓ -7.21%) 🎯 · SHOP ~$131 (recovered) · NVDA ~$199.71 (flat) · META ~$659.15 (↓ -2.43%) · TSLA $373.60 (↓ -3.59%) ⚠️ v3.1 price of $388.65 was INCORRECT</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX ~19.31 (↓ -1%, sub-20) · QQQ ~$637 above 50d MA ($576.13) ✅ · Nasdaq -0.89% (24,438) · S&P -0.41% (7,108) · Scenario: BULLISH (intact but fragile)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>🎯 PLTR PRE-EARNINGS DIP TRIGGERED</strong> — -7.21% in 24hrs (~$150 → $141.54). $133 GTC now only ~6.4% below market (was 9–10%). Needs ~$8.54 more drop to fill. Monday FOMC day (April 28) could push it. New USDA $300M contract did NOT support stock — bearish tape confirmation.</li>
+            <li><strong>⚠️ TSLA CAPEX SHOCK</strong> — -3.59% close on $25B capex guidance (up from $20B). Beat processed, but $5B extra spend for AI/Optimus/robotaxi/chip fab spooked investors. Sector contagion: IBM -7%, ServiceNow -13% same day. JPMorgan Sell/$145 target now more relevant.</li>
+            <li><strong>📉 META WORKFORCE CUTS + -2.4%</strong> — Layoffs announced April 23. Bearish tape 6 days pre-earnings (April 29 AH). UBS $908 target (Buy) still holds, but tape weakening. FOMC + META AH on April 29 = peak volatility day.</li>
+            <li><strong>✅ VIX COOLED</strong> — 19.50 → 19.31. Below 20 threshold. BULLISH scenario preserved. No position sizing change needed. Re-breach of 20 on FOMC = NEUTRAL shift.</li>
+            <li><strong>📅 PHASE A ENTRY = TODAY</strong> — GTC limits active. PLTR $133 (moderate fill probability if dip continues), SHOP $113 (~14% below, low probability). No new orders needed. Cancel both by April 30 if unfilled.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS:</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>🎯 <strong>MONITOR PLTR TODAY</strong> — If breaks below $140, $133 fill becomes realistic by Monday close.</li>
+            <li>🚨 <strong>NO ACTION TODAY</strong> — GTC orders handle Phase A mechanically. Do NOT chase.</li>
+            <li>📊 IF PLTR FILLS AT $133 — Exit plan: +10% scale at $146.30 / +15% at $152.95 / stop at $119.70.</li>
+            <li>⚠️ FOMC April 28–29 + META AH April 29 — Peak volatility. VIX re-breach of 20 = NEUTRAL shift.</li>
+            <li>🗓️ Next update: April 25 (24h cadence).</li>
+          </ul>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 23, 2026 — v3.1 — 🔴 MATERIAL: TSLA BEAT + SHOP -3.5% + PHASE A ENTRY TOMORROW</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Phase A entry TOMORROW (April 24) — GTC limits active</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">PRICES:</strong>
+            PLTR ~$145–148 (-) · SHOP ~$130.60 (↓ -3.5%) · NVDA ~$200–202 (flat) · META ~$672.74 (flat) · TSLA ~$388.65 (stable post-earnings beat)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX ~19.50 ⚠️ STILL RISING (+3.34% today) · QQQ above 50d MA ✅ BULLISH · Scenario: BULLISH (sub-20 VIX)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>✅ TSLA BEAT Q1 EARNINGS (April 22 AH)</strong> — EPS $0.41 vs $0.36–0.37 est (+11% beat). Revenue $22.38B (slight beat). Gross margin 21.1% vs 16.3% YoY — massive rebound. Stock stable at ~$388.65. TSLA crash scenario did NOT trigger. PLTR $133 and SHOP $113 GTC limits did NOT fill.</li>
+            <li><strong>⚠️ SHOP -3.5% TODAY</strong> — Dropped $135.31 → ~$130.60. Pre-earnings dip criterion triggered (3%+ from 5-day high). Gap to $113 limit narrowed: 16.5% → 13.5%. Still low fill probability but watch for continuation.</li>
+            <li><strong>⚠️ VIX STILL CLIMBING</strong> — 17.48 → 19.12 → 19.50 over 3 days. Iran/Hormuz tensions unresolved. FOMC April 28–29 hawkish risk remains (Fed raised 2026 PCE inflation forecast to 2.7%). VIX above 20 = NEUTRAL scenario — reduce sizing.</li>
+            <li><strong>📅 PHASE A ENTRY IS TOMORROW (APRIL 24)</strong> — GTC limits active. Unlikely to fill pre-market at current prices but remain in force through April 30.</li>
+            <li><strong>🗓️ FOMC April 29 + META April 29 AH</strong> — Maximum volatility day upcoming. META UBS target $908, zero sell ratings.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS:</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>✅ TSLA resolved — no action from earnings. GTC limits remain active.</li>
+            <li>🚨 <strong>TOMORROW = PHASE A (APRIL 24)</strong> — GTC orders will auto-execute if PLTR hits $133 or SHOP hits $113. No new orders needed.</li>
+            <li>⚠️ Watch VIX — break above 20: scenario shifts NEUTRAL → reduce sizing, consider cancelling SHOP $113.</li>
+            <li>📊 Monitor SHOP — if drops another 3–5% tomorrow (~$124–$127), $113 becomes more realistic.</li>
+            <li>⚠️ Deadline: Cancel PLTR $133 and SHOP $113 GTC by April 30 if not filled (PLTR earns May 4).</li>
+            <li>Next update: April 24 (24h cadence — Phase A entry day — CRITICAL post-market assessment)</li>
+          </ul>
+        </div>
+
+        <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;padding:12px 16px;">
+          <div style="font-weight:700;color:#CC0000;margin-bottom:6px;">▶ April 22, 2026 — v3.0 — 🔴 CRITICAL: TSLA EARNINGS AH TONIGHT + VIX RISING</div>
+          <div style="font-size:0.88em;color:#ccc;margin-bottom:8px;">24h cadence · Phase A entry in 2 days (April 24)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">PRICES:</strong>
+            PLTR $146.56 (+0.46%) · SHOP $135.31 (+0.13%) · NVDA $199.93 (-1.06%) · META ~$673 (+0.32%) · TSLA $388.64 (-0.98% pre-earnings)</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">MARKET:</strong>
+            VIX 19.12–19.50 ⚠️ RISING (was 17.48) · QQQ $637.40 above 50d MA $600.76 ✅ BULLISH</div>
+          <div style="margin-bottom:6px;"><strong style="color:#f0a0a0;">🚨 MATERIAL CHANGES:</strong></div>
+          <ol style="margin:0 0 8px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li><strong>TSLA AH EARNINGS TONIGHT</strong> — Primary dip catalyst. TSLA at $388.64, down -$3.86 from yesterday. Q1 delivery miss (358K vs 365K). Energy storage -38% sequential. IF TSLA -5%+ AH → PLTR $133 limit may fill (needs -8.9% from $146.56). SHOP $113 needs -16.5% — unlikely.</li>
+            <li><strong>VIX RISING +11%</strong> — 17.48 → 19.12–19.50. Crude oil surged +6% (Iran/Strait of Hormuz). Fed minutes reveal hawkish pivot / rate hike discussion returning. VIX above 20 = scenario shift to NEUTRAL.</li>
+            <li><strong>FED HAWKISH RISK</strong> — April 29 FOMC now higher-stakes. Rate hike language could move markets same day as META AH earnings.</li>
+            <li><strong>CRUDE +6%</strong> — New geopolitical macro headwind for tech not present in v2.9.1.</li>
+            <li><strong>META UPGRADE</strong> — UBS raised target to $908 (from $872, Buy). Zero sell ratings on META heading into April 29.</li>
+          </ol>
+          <div style="margin-bottom:4px;"><strong style="color:#f0a0a0;">⚡ ACTIONS:</strong></div>
+          <ul style="margin:0 0 4px 18px;padding:0;color:#ddd;font-size:0.9em;">
+            <li>🚨 <strong>WATCH TSLA AH TONIGHT</strong> — IF -5%+: check PLTR $133 limit AH/pre-market April 23. IF beats: do NOT chase.</li>
+            <li>⚠️ Watch VIX — break above 20 = reduce position sizing, consider cancelling SHOP $113 order.</li>
+            <li>📅 Phase A entry Friday April 24 (2 days). GTC limits active: PLTR $133 ✓ · SHOP $113 ✓</li>
+            <li>🗓️ Deadline: Cancel both GTC orders by April 30 if not filled.</li>
+            <li>Next update: April 23 (24h cadence — post-TSLA AH assessment)</li>
+          </ul>
+        </div>
+
+            <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #FF5252; margin-bottom: 8px; font-size:15px;">🔴 April 21, 2026 — v2.9.1 — CORRECTION TO v2.9: VERIFIED E*TRADE CLOSING PRICES</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ffcdd2;">
+                    <strong style="color:#FF7043;">CORRECTION:</strong> v2.9 used web-search estimates (April 20–21 mix). Lance provided the verified E*Trade watchlist closing snapshot for April 21. TSLA estimate was materially off (~$401 stated vs $392.50 actual). Other prices were within rounding. No change to earnings dates, VIX/QQQ regime, or market scenario.<br><br>
+
+                    <strong style="color:#FF5252;">VERIFIED CLOSING PRICES (April 21, 2026 — E*Trade):</strong><br>
+                    • <strong>PLTR: $145.89</strong> (-0.34%, -$0.50) | Limit $133 — <strong>8.8% below market</strong><br>
+                    • <strong>SHOP: $135.14</strong> (+3.04%, +$3.99) | Limit $113 — 16.4% below market. Counter-trend strength.<br>
+                    • <strong>NVDA: $202.06</strong> (+0.19%, +$0.38) — Essentially flat.<br>
+                    • <strong>META: $670.91</strong> (-2.56%, -$17.64) — Down hard; pre-earnings positioning (Apr 29 AH + FOMC same day).<br>
+                    • <strong>TSLA: $392.50</strong> (-2.03%, -$8.12) — ⚠️ v2.9 estimate ~$401 was stale. Already DOWN 2% into tomorrow's AH earnings.<br>
+                    • NFLX: $94.83 (-2.55%) — In watchlist, not in active plan.<br><br>
+
+                    <strong style="color:#FF5252;">WHAT CHANGED vs v2.9:</strong><br>
+                    1. <strong>TSLA baseline</strong>: ~$401 → $392.50. 5%+ drop threshold post-earnings = break below <strong>~$372.88</strong> (not ~$381).<br>
+                    2. TSLA is already pricing in bearish view → thinner residual downside for a PLTR fill on a miss, and more room on a beat-and-rally.<br>
+                    3. <strong>META -2.56% today is a new signal</strong> — potential pre-earnings slide starting 8 days out. Monitor, no action.<br>
+                    4. SHOP +3.04% confirms counter-trend strength — $113 limit now 16.4% below market; fill probability has dropped further.<br>
+                    5. PLTR intraday gap tightened slightly to 8.8% (from 9.7%) — not material.<br><br>
+
+                    <strong style="color:#FF7043;">MARKET SCENARIO: BULLISH (unchanged).</strong> No revision to VIX/QQQ read from v2.9.<br><br>
+
+                    <strong style="color:#FF5252;">⚡ ACTIONS — REVISED (supersedes v2.9 list):</strong><br>
+                    1. TSLA earnings TOMORROW AH — new baseline $392.50. Watch for break below <strong>$372.88</strong> as the 5% trigger.<br>
+                    2. IF TSLA -5%+ AH: check PLTR & SHOP in AH / April 23 pre-market for fills.<br>
+                    &nbsp;&nbsp;&nbsp;• PLTR $133 needs 8.8% drop from $145.89 — achievable on meaningful TSLA-driven sector pull.<br>
+                    &nbsp;&nbsp;&nbsp;• SHOP $113 needs 16.4% drop from $135.14 — today's +3% strength makes this even less likely.<br>
+                    3. IF TSLA beats: do NOT chase; bounce room from $392.50 is larger than from $401.<br>
+                    4. 🆕 Watch META tomorrow for follow-through on today's -2.56%. Not actionable, but informs sector tone pre-TSLA AH.<br>
+                    5. 🆕 Begin weighing cancel of SHOP $113 GTC before April 30 if no dip by April 28 — fill probability has materially dropped.<br>
+                    6. Reminders unchanged: cancel PLTR $133 GTC and SHOP $113 GTC by April 30 if not filled.<br>
+                    7. 🗓️ <strong>NEXT UPDATE: April 22 post-TSLA AH earnings (24h cadence — CRITICAL).</strong>
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #FF5252; margin-bottom: 8px; font-size:15px;">🔴 April 21, 2026 — v2.9 — MATERIAL CHANGES: TSLA EARNINGS TOMORROW + CADENCE SWITCH TO 24H</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ffcdd2;">
+                    <strong style="color:#FF7043;">CADENCE CHECK:</strong> Phase A entry April 24 (3 days — 72hrs). NOW WITHIN 72H WINDOW → switching to 24-HOUR cadence. Last update v2.8 April 20 (~24hrs ago). ✅ UPDATE REQUIRED.<br><br>
+
+                    <strong style="color:#FF5252;">PRICES (estimated, April 20–21 — web search only; verify in E*Trade before trading):</strong><br>
+                    • <strong>PLTR: ~$145.89</strong> | Limit: $133 — <strong>9.7% below market</strong> (≈ unchanged from v2.8)<br>
+                    • <strong>SHOP: ~$133–135</strong> | Limit: $113 — ~18% below market (slight uptick from $131.15 in v2.8)<br>
+                    • META: ~$671.75 (↓2.4% Apr 20) | NVDA: ~$202 | TSLA: ~$401 (earnings <strong>TOMORROW AH</strong>)<br>
+                    • <strong>VIX: ~17.48</strong> — ✅ BULLISH (slight uptick from 16.92, still below 20). No scenario shift.<br>
+                    • <strong>QQQ: ~$637–648</strong> — ✅ BULLISH. Well above 50-day MA (~$576–601).<br><br>
+
+                    <strong style="color:#FF5252;">MATERIAL CHANGES:</strong><br>
+                    1. 🚨 <strong>TSLA EARNINGS TOMORROW — April 22 AH. Primary dip catalyst is NOW HERE.</strong><br>
+                    &nbsp;&nbsp;&nbsp;• Q1 deliveries: 358,023 (missed consensus ~365K). Energy storage: 8.8 GWh (missed 12.45 GWh).<br>
+                    &nbsp;&nbsp;&nbsp;• Consensus EPS $0.37 / $22.71B rev. Refinitiv: $0.30 EPS predicted (-20.6% surprise).<br>
+                    &nbsp;&nbsp;&nbsp;• JPMorgan $145 PT (Sell), Jefferies Hold at $350. Bears dominant. Capex >$20B guidance.<br>
+                    &nbsp;&nbsp;&nbsp;• <strong>Miss + weak guidance = likely 5–10% TSLA drop → sector drag → PLTR/SHOP dip opportunity.</strong><br>
+                    2. ⏰ <strong>CADENCE SWITCH</strong> — Within 72h of Phase A (April 24). Now updating every 24 hours.<br>
+                    3. META earnings April 29 AH + FOMC April 29 2PM ET — dual-catalyst risk in 8 days.<br>
+                    &nbsp;&nbsp;&nbsp;• MoffettNathanson raised META target to $780 (Buy). Not in plan — monitor for sector volatility.<br>
+                    4. NVDA: Mizuho reiterated outperform. AI spending robust. No action needed.<br>
+                    5. <strong>Earnings dates confirmed unchanged:</strong> TSLA Apr 22 AH | META Apr 29 AH | PLTR May 4 AH | SHOP May 5 BMO | NVDA May 20 AH.<br><br>
+
+                    <strong style="color:#FF7043;">MARKET SCENARIO: BULLISH (unchanged).</strong> VIX 17.48, QQQ well above 50-day MA. No scenario shift.<br><br>
+
+                    <strong style="color:#FF5252;">⚡ ACTIONS REQUIRED:</strong><br>
+                    1. 🚨 <strong>TONIGHT/TOMORROW:</strong> Watch TSLA April 22 AH earnings. Note AH price immediately.<br>
+                    2. <strong>IF TSLA drops 5%+:</strong> Check PLTR & SHOP in AH and pre-market April 23 for potential fills.<br>
+                    &nbsp;&nbsp;&nbsp;• PLTR $133 limit: needs ~9.7% dip from ~$145.89. Achievable with 5–10% TSLA drop.<br>
+                    &nbsp;&nbsp;&nbsp;• SHOP $113 limit: needs ~18% dip. Very unlikely without broad sell-off.<br>
+                    3. <strong>IF TSLA beats/rallies:</strong> Do NOT chase. Accept limits may not fill. Prepare to cancel by April 30.<br>
+                    4. ⚠️ Cancel PLTR $133 GTC if NOT filled by April 30 (PLTR earnings May 4 — exit window closes).<br>
+                    5. ⚠️ Cancel SHOP $113 GTC if NOT filled by April 30 (SHOP earnings May 5).<br>
+                    6. 🗓️ <strong>NEXT UPDATE: April 22 post-TSLA AH earnings (24h cadence — CRITICAL UPDATE).</strong>
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #FF5252; margin-bottom: 8px; font-size:15px;">🔴 April 20, 2026 — v2.8 — MATERIAL CHANGES DETECTED (72h Cadence Update)</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ffcdd2;">
+                    <strong style="color:#FF7043;">CADENCE CHECK:</strong> Phase A entry April 24 (4 days — 96hrs, &gt;72hrs). Last update v2.7 April 17 (~72hrs ago — AT CADENCE THRESHOLD, proceed).<br><br>
+
+                    <strong style="color:#FF5252;">PRICES (estimated, April 20 — web search only; verify in E*Trade before trading):</strong><br>
+                    • <strong>PLTR: ~$146.50</strong> | Limit: $133 — <strong>10.1% below market ⚠️ LIMIT DRIFTING FURTHER</strong> (was 4.9% in v2.7)<br>
+                    • <strong>SHOP: ~$131.15</strong> | Limit: $113 — 13.8% below market (slight pullback from $134.79)<br>
+                    • META: ~$687 | NVDA: ~$201.68 | TSLA: ~$400 (no positions in these)<br>
+                    • <strong>VIX: ~16.92</strong> — ✅ BULLISH (improved from 17.94 in v2.7).<br>
+                    • <strong>QQQ: ~$648.85</strong> — ✅ BULLISH. Well above 50-day MA (~$601). Tech leadership intact.<br><br>
+
+                    <strong style="color:#FF5252;">MATERIAL CHANGES:</strong><br>
+                    1. 🚨 <strong>TSLA EARNINGS IN 2 DAYS — April 22 AH.</strong> PRIMARY DIP CATALYST ENTERING CRITICAL WINDOW.<br>
+                    &nbsp;&nbsp;&nbsp;• TSLA at ~$400 (high beta 1.92). Q1 delivery miss, P/E 326x, FY2025 revenue fell 3%.<br>
+                    &nbsp;&nbsp;&nbsp;• JPMorgan Sell / $145 target. Analysts see 5%+ move probability, <strong>skewed DOWNSIDE</strong>.<br>
+                    &nbsp;&nbsp;&nbsp;• IF TSLA drops 5%+ post-earnings: expect tech sector drag → PLTR/SHOP could dip toward limits.<br>
+                    2. ⚠️ <strong>PLTR +5.0% since v2.7</strong> — $139.53 → ~$146.50. Limit $133 now 10.1% below market.<br>
+                    3. 📅 <strong>FOMC April 28–29</strong> confirmed. Decision April 29 (same day as META AH). Rates hold expected at 3.50–3.75%. Sector volatility risk on that day.<br>
+                    4. Earnings dates UNCHANGED: TSLA Apr 22 AH | META Apr 29 AH | PLTR May 4 AH | SHOP May 5 BMO | NVDA May 20 AH.<br><br>
+
+                    <strong style="color:#FF7043;">Market Scenario: BULLISH (unchanged).</strong> VIX 16.92, QQQ above 50-day MA. No scenario shift.<br><br>
+
+                    <strong style="color:#FF5252;">⚡ ACTIONS REQUIRED:</strong><br>
+                    1. <strong>WATCH TSLA APRIL 22 AH</strong> — Monitor after-hours and pre-market April 23 for sector reaction.<br>
+                    2. IF TSLA down 5%+: Check PLTR and SHOP April 22 AH / April 23 pre-market. Assess if limits may fill.<br>
+                    3. IF TSLA beats and rallies: Dips unlikely — <strong>do NOT chase.</strong> Accept limits may not fill.<br>
+                    4. PLTR $133 GTC limit: active. 10.1% gap — needs TSLA catalyst dip to fill.<br>
+                    5. SHOP $113 GTC limit: active. 13.8% gap — low probability without significant selloff.<br>
+                    6. REMINDER: Cancel PLTR limit if not filled by April 30 (earnings May 4, exit window closes).<br>
+                    7. REMINDER: Cancel SHOP limit if not filled by April 30 (earnings May 5, no time for pre-earnings run).<br>
+                    8. 🗓️ <strong>NEXT UPDATE: April 22 AH</strong> (post-TSLA earnings — switch to 24h cadence as Phase A entry approaches).
+                </div>
+            </div>
+            <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #66BB6A; margin-bottom: 8px; font-size:15px;">🟢 April 17, 2026 — v2.7 — CADENCE SKIP: No Material Changes</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #c8e6c9;">
+                    <strong style="color:#81C784;">CADENCE CHECK:</strong> Phase A entry April 24 (7 days — &gt;72hrs). Last update v2.6 April 16 (~24hrs ago — SKIP per cadence rules). No override condition met.<br><br>
+
+                    <strong style="color:#A5D6A7;">PRICES (estimated, April 17 — web search only; verify in E*Trade):</strong><br>
+                    • <strong>PLTR: ~$139.53</strong> | Limit: $133 — 4.9% below market ← approaching target<br>
+                    • <strong>SHOP: ~$134.79</strong> | Limit: $113 — 19.3% below market (unlikely to fill without major dip)<br>
+                    • META: ~$675 | NVDA: ~$198.35 | TSLA: conflicting data (~$349–389); verify in E*Trade<br>
+                    • <strong>VIX: ~17.94</strong> — ✅ BULLISH. Market calm after Iran volatility spike to ~30 (now retracted).<br>
+                    • <strong>QQQ:</strong> Above 50-day MA (~$576–606) — ✅ BULLISH. Tech leadership intact.<br><br>
+
+                    <strong style="color:#A5D6A7;">MONITORING ITEMS (no action required today):</strong><br>
+                    • ⏰ <strong>TSLA earnings April 22 AH (5 days)</strong> — PRIMARY DIP CATALYST. JPMorgan reiterated $145 target (60% downside warning) citing inventory crisis (50K unsold units, Q1 delivery miss). Post-TSLA sector rotation could push PLTR toward $133 limit.<br>
+                    • ⚠️ VIX spiked to ~30 this week (US-Iran nuclear talks collapsed, Hormuz port blockade). Pulled back to ~18 — market resilient.<br>
+                    • 📋 Earnings confirmed — no changes: TSLA Apr 22 AH | META Apr 29 AH | PLTR May 4 AH | SHOP May 5 BMO | NVDA May 20 AH.<br><br>
+
+                    <strong style="color:#66BB6A;">NO ACTION REQUIRED.</strong> Monitor TSLA April 22 AH for sector dip signal. Next scheduled update: ~April 19–20 (72h cadence window).
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #FF5252; margin-bottom: 8px; font-size:15px;">🔴 April 16, 2026 — v2.6 — POSITION STRATEGY UPDATED + VERIFIED PRICES</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ffcdd2;">
+                    <strong style="color:#FF7043;">CADENCE CHECK:</strong> Phase A entry April 24 (8 days — &gt;72hrs). Last update v2.5 April 15 (&lt;24hrs — normally SKIP). ⚠️ OVERRIDE: Position strategy change (META cancelled, PLTR $133 added); E*Trade verified prices materially differ from prior web data.<br><br>
+
+                    <strong style="color:#FF5252;">⚠️ DATA CORRECTION — PRIOR WEB PRICES WERE INACCURATE:</strong><br>
+                    • Web search prices in v2.1–v2.5 contained errors. Going forward: prices verified directly from E*Trade.<br>
+                    • Watchlist shows previous session close (April 15). Charts confirm April 16 intraday movement.<br><br>
+
+                    <strong style="color:#FF7043;">📋 POSITION CHANGES (Lance confirmed April 16):</strong><br>
+                    • <strong style="color:#FF5252;">META $573 LIMIT BUY — CANCELLED.</strong> META at $662.49 is 15.6% above limit; will not fill before April 29 earnings.<br>
+                    • <strong style="color:#66BB6A;">PLTR $133 LIMIT BUY — ADDED (GTC, new).</strong> ~4 shares at $133 = ~$532. Replacing META allocation.<br>
+                    • <strong style="color:#66BB6A;">SHOP $113 LIMIT BUY — MAINTAINED (GTC, 6 shares = $678).</strong> No change.<br>
+                    • Capital: SHOP $678 + PLTR $532 = $1,210 committed | ~$290 cash reserve from $1,500 starting capital.<br><br>
+
+                    <strong style="color:#FF7043;">VERIFIED PRICES — April 15 Close (E*Trade):</strong><br>
+                    • PLTR: <strong>$135.70</strong> | SHOP: <strong>$117.64</strong> | META: <strong>$662.49</strong> | NVDA: <strong>$196.51</strong> | TSLA: <strong>$364.20</strong> | VIX: <strong>18.17</strong><br><br>
+
+                    <strong style="color:#FF7043;">APRIL 16 INTRADAY (chart data, not official close):</strong><br>
+                    • <strong style="color:#FF5252;">PLTR: ~$142.15</strong> (+4.8% from $135.70) — $133 limit now <strong>6.7% below current price.</strong><br>
+                    • <strong style="color:#FF5252;">SHOP: ~$127.41</strong> (+8.3% from $117.64) — $113 limit now <strong>11.3% below current price.</strong><br>
+                    • VIX: 18.17 ✅ Calm. Market scenario: <strong>BULLISH — STRENGTHENING.</strong><br><br>
+
+                    <strong style="color:#FF5252;">🚨 LIMIT TARGETS MOVING AWAY — BULL RUN RISK:</strong><br>
+                    • Both SHOP (+8.3%) and PLTR (+4.8%) rallied April 16. Tech sector broadly higher on earnings optimism + geopolitical de-escalation.<br>
+                    • SHOP $113 limit: 11.3% gap — needs a significant pre-earnings dip before May 5 BMO.<br>
+                    • PLTR $133 limit: 6.7% gap — more achievable; needs pre-earnings dip before May 4 AH.<br>
+                    • <strong>Primary dip catalyst: TSLA earnings April 22 AH (6 days).</strong> Post-TSLA sector rotation is the best hope for fills.<br>
+                    • If TSLA beats and rally extends: accept some limits may not fill this cycle.<br><br>
+
+                    <strong style="color:#FF7043;">⚠️ FOMC APRIL 29 — SAME DAY AS PLTR/SHOP EXIT WINDOW:</strong><br>
+                    • Rate decision April 29 2:00 PM ET coincides with Phase B exit window start (April 30). Plan exits ahead of Fed if possible.<br><br>
+
+                    <strong style="color:#FF5252;">⚡ ACTIONS REQUIRED (April 16):</strong><br>
+                    1. <strong>CANCEL META $573 limit buy in E*Trade</strong> (if not already done).<br>
+                    2. <strong>PLACE PLTR $133 GTC limit buy</strong> — ~4 shares.<br>
+                    3. <strong>KEEP SHOP $113 GTC limit buy</strong> — 6 shares.<br>
+                    4. MARK: <strong>TSLA April 22 AH</strong> — watch PLTR/SHOP prices April 22–23 for dip entry.<br>
+                    5. MARK: <strong>FOMC April 29 2 PM ET</strong> — sector risk on exit day.<br>
+                    6. If SHOP not filled by April 30: cancel (earnings May 5 too close).<br>
+                    7. If PLTR not filled by April 30: cancel (earnings May 4 — exit window closes).
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #CC0000;background:rgba(204,0,0,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #FF5252; margin-bottom: 8px; font-size:15px;">🔴 April 15, 2026 — v2.5 — MATERIAL CHANGES DETECTED (Cadence Override)</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ffcdd2;">
+                    <strong style="color:#FF7043;">CADENCE CHECK:</strong> Phase A entry April 24 (9 days — &gt;72hrs). Last update v2.4 April 14 (&lt;24hrs — normally SKIP). ⚠️ OVERRIDE: Material earnings date change confirmed for PLTR.<br><br>
+
+                    <strong style="color:#FF5252;">🚨 CRITICAL — PLTR EARNINGS DATE SHIFTED:</strong><br>
+                    • PLTR: Earnings MOVED <strong>May 11 → May 4, 2026 AH</strong> (confirmed: Nasdaq, StockTitan, MarketBeat).<br>
+                    • <strong>ACTION REQUIRED:</strong> Update Phase B exit window from May 7–9 → <strong>April 30–May 2</strong>. Exit BEFORE May 4 AH.<br>
+                    • Phase A entry (April 24) still valid — pre-earnings dip play unchanged, just tighter exit window.<br>
+                    • SHOP: Also changed from April 30 → May 5 BMO (excluded from plan — informational only).<br><br>
+
+                    <strong style="color:#FF7043;">PRICES (April 15 vs v2.4 April 14):</strong><br>
+                    • PLTR: $135.69 (+1.3%) — ✅ Near $133 limit buy target (+2%). Entry target unchanged.<br>
+                    • NVDA: $196.51 (+4.4%) — 10-day win streak. 26% above $156 target. No entry action.<br>
+                    • META: $662.76 (+5.1%) — 35% above $489 target. No entry action.<br>
+                    • TSLA: $365.98 (+6.8%) — Excluded. UBS upgraded Sell→Hold. Earnings April 22 AH (7 days).<br>
+                    • SHOP: $112.38 (-6.8%) — Excluded. Earnings May 5 BMO.<br><br>
+
+                    <strong style="color:#FF7043;">MARKET CONDITIONS:</strong><br>
+                    • VIX: 18.59 (was 19.12) — ✅ IMPROVING/BULLISH. Fear declining despite Iran escalation.<br>
+                    • QQQ: $617.39 (was $611.84) — ✅ BULLISH. Above 50-day MA (~$599). Tech intact.<br>
+                    • Scenario: BULLISH unchanged.<br><br>
+
+                    <strong style="color:#FF5252;">⚠️ RISK FACTORS:</strong><br>
+                    • US-IRAN: Military blockade of Iranian ports commenced April 14. VIX not spiking (18.59). Markets shrugging off — monitor escalation closely.<br>
+                    • TARIFF: Trump admin signaled semiconductor exemptions may be temporary. Potential NVDA headwind.<br><br>
+
+                    <strong style="color:#FF7043;">EARNINGS (updated):</strong><br>
+                    • PLTR: 🔴 May 4 AH (was May 11) | NVDA: May 20 AH ✓ | META: Apr 29 AH ✓ | TSLA: Apr 22 AH ✓ | SHOP: May 5 BMO<br><br>
+
+                    <strong style="color:#FF5252;">⚡ ACTIONS REQUIRED:</strong><br>
+                    1. <strong>UPDATE PLTR PHASE B EXIT → April 30–May 2</strong> (old May 7–9 is WRONG now).<br>
+                    2. SET ALERT: TSLA April 22 AH — post-earnings dip = potential better PLTR/NVDA entry.<br>
+                    3. MONITOR: US-Iran blockade. VIX spike above 25 → reassess bullish scenario.<br>
+                    4. MONITOR: Semiconductor tariff exemption status. NVDA most exposed.
+                </div>
+            </div>
+
+            <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 8px; font-size:15px;">✅ April 14, 2026 — v2.4 — CADENCE SKIP: No Material Changes (2nd Daily Run)</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #a5d6a7;">
+                    <strong style="color:#4CAF50;">CADENCE CHECK:</strong> Phase A entry April 24 (10 days — &gt;72hrs). Last update v2.3 April 14 (&lt;24hrs ago). ⏭️ SKIP per 72-hr rule.<br><br>
+
+                    <strong style="color:#a5d6a7;">PRICES (vs v2.3, same day — market close):</strong><br>
+                    • PLTR: $129–134 — FLAT. $133 limit buy target unchanged.<br>
+                    • NVDA: $188.28 — FLAT. No entry action.<br>
+                    • META: ~$630 — FLAT. No entry action.<br>
+                    • TSLA: $342.79 — FLAT (excluded). SHOP: $117–121 +3.8% (excluded, not triggering recalc).<br><br>
+
+                    <strong style="color:#4CAF50;">MARKET:</strong> VIX ~19.12 ✅ FLAT. QQQ ~$611.84 ✅ above 50-day MA. Nasdaq +1.23% | S&amp;P +1.02%. BULLISH unchanged.<br><br>
+
+                    <strong style="color:#FFD54F;">⚠️ NEW WATCH: US-Iran first-round talks FAILED (April 14).</strong> Gold fell on news. VIX NOT spiking — markets shrugging off escalation. Monitor for second-round breakdown impact on oil/energy-linked tech.<br><br>
+
+                    <strong style="color:#a5d6a7;">EARNINGS (all confirmed, no changes):</strong><br>
+                    PLTR May 11 ✅ | NVDA May 28 ✅ | META Apr 29 AH ✅ | TSLA Apr 22 AH ✅ | SHOP Apr 30 BMO ✅<br><br>
+
+                    <strong style="color:#4CAF50;">⚡ ACTION:</strong> None required. TSLA earnings Apr 22 AH (8 days) — watch post-miss dip for opportunistic NVDA/META sector entry. Next update: <strong>April 17</strong> (72-hr cadence).
+                </div>
+            </div>
+            <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 8px; font-size:15px;">✅ April 14, 2026 — v2.3 — CADENCE SKIP: No Material Changes / PLTR Earnings Date RESOLVED</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #a5d6a7;">
+                    <strong style="color:#4CAF50;">CADENCE CHECK:</strong> Phase A entry April 24 (10 days — &gt;72hrs). Last update April 13 (&lt;24hrs ago). ⏭️ SKIP per 72-hr rule.<br><br>
+
+                    <strong style="color:#a5d6a7;">PRICES vs v2.2 (April 13):</strong><br>
+                    • PLTR: ~$130–134 — FLAT vs $129.09. No material change. Near $133 limit.<br>
+                    • NVDA: $188.28 — UP +0.3% vs $187.64. Flat. 20.7% above $156 target.<br>
+                    • META: ~$627–630 — FLAT vs $630.85. No material change. 28% above $489.<br>
+                    • TSLA: $342.79 — DOWN -2.4% (excluded). SHOP: $114.60 — UP +3.1% (excluded).<br><br>
+
+                    <strong style="color:#4CAF50;">MARKET:</strong> VIX ~19.12 ✅ (was 19.23). QQQ ~$611.84 ✅ (was $611.07). BULLISH scenario unchanged.<br><br>
+
+                    <strong style="color:#FFD54F;">🔔 CRITICAL RESOLUTIONS:</strong><br>
+                    • <strong style="color:#FFD54F;">PLTR earnings CONFIRMED May 11 ✅</strong> — May 4 vs May 11 ambiguity resolved. Phase B exit window: <strong>May 7–9.</strong><br>
+                    • NVDA earnings CONFIRMED May 20 ✅. Exit window: May 16–18.<br>
+                    • META April 29 ✓ | TSLA April 22 ✓ | SHOP April 30 ✓ — all confirmed.<br><br>
+
+                    <strong style="color:#4CAF50;">⚡ ACTIONS:</strong><br>
+                    1. ✅ <strong>UPDATE CALENDAR</strong> — PLTR exit May 7–9. NVDA exit May 16–18.<br>
+                    2. PLTR GTC limit $133 — may have filled. Check brokerage account.<br>
+                    3. Watch TSLA April 22 AH earnings — sector dip = opportunistic NVDA/META entry.<br>
+                    4. Next update: <strong>April 17</strong> (72-hr schedule).
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #b71c1c;background:rgba(183,28,28,0.15);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #b71c1c; margin-bottom: 8px; font-size:15px;">⚠️ April 13, 2026 — v2.2 — MATERIAL CHANGES: META DOWNGRADED / TSLA Q1 MISS / VIX IMPROVING</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ef9a9a;">
+                    <strong style="color:#b71c1c;">CADENCE CHECK:</strong> Phase A entry April 24 (11 days — &gt;72hrs). Last update April 9 (96hrs ago). ✅ UPDATE DUE.<br><br>
+
+                    <strong style="color:#FFA726;">⚠️ PLTR — $129.09 (Apr 12 close):</strong> DOWN -1.1% vs v2.1 ($130.47). Still BELOW $133 limit. If GTC filled at $133: unrealized ~-2.9%. Burry narrative fading — Wedbush/Ives reaffirmed PLTR as "Core AI winner." HOLD if filled.<br>
+                    <strong style="color:#66BB6A;">NVDA — ~$187.64 (Apr 13):</strong> UP +3.1% vs v2.1 ($182.08). 20.3% above $156 target. No entry action. Earnings May 20 confirmed (Nasdaq).<br>
+                    <strong style="color:#FFA726;">⚠️ META — $630.85 (Apr 12 close):</strong> UP +0.3% vs v2.1. ANALYST DOWNGRADE: Cut from 'Buy' to 'Hold' (single analyst). Consensus still bullish. Earnings April 29 AH (16 days). Plan intact — monitor.<br>
+                    <strong style="color:#FFA726;">⚠️ TSLA — $351.30 (Apr 12 close):</strong> DOWN -2.4% vs v2.1 (~$360). Excluded per v1.2. Q1 DELIVERIES MISSED: 408k units, inventory build. Multiple analyst cuts. Earnings April 22 AH (9 days) — sector vol risk.<br>
+                    <strong style="color:#aaa;">SHOP — ~$111.20:</strong> Excluded per v1.2. Earnings April 30 BMO confirmed.<br><br>
+
+                    <strong style="color:#66BB6A;">✅ VIX: 19.23</strong> — DOWN from 21.0 (v2.1). BULLISH. Below 20; risk-on confirmed. Lowest since March spike.<br>
+                    <strong style="color:#66BB6A;">✅ QQQ: $611.07</strong> — UP from $606–610 (v2.1). BULLISH. Firmly above 50-day MA (~$576). Third week above MA.<br>
+                    <strong style="color:#66BB6A;">✅ Market Scenario: NEUTRAL → BULLISH</strong> — VIX sub-20, QQQ above MA, geopolitics fading.<br>
+                    <strong style="color:#FFA726;">⚠️ TSLA Q1 Miss:</strong> Watch for sector contagion dip in NVDA/META on April 22 AH earnings — potential opportunistic entry.<br>
+                    <strong style="color:#FFA726;">⚠️ PLTR Earnings Date:</strong> May 4 (Benzinga) vs May 11 (consensus) — STILL UNRESOLVED. Verify at investors.palantir.com.<br>
+                    <strong style="color:#FFA726;">⚠️ NVDA Earnings Date:</strong> May 20 (Nasdaq) vs May 27 (TipRanks) — STILL UNRESOLVED. Verify at nvidia.com/investors.<br>
+                    <strong style="color:#aaa;">ℹ️ FED:</strong> Rate held 3.50–3.75% (March). 2026 PCE revised up to 2.7%. No near-term cuts. Neutral for tech.<br><br>
+
+                    <strong style="color:#b71c1c;">⚡ ACTIONS:</strong><br>
+                    1. <strong>PLTR</strong> — If GTC filled at $133: ~-2.9% unrealized. HOLD. Burry thesis fading. Verify earnings (May 4 vs May 11). If NOT filled: at $129 — consider lowering limit to $128 or entering at market.<br>
+                    2. <strong>META</strong> — Single 'Hold' downgrade: Do NOT exit. Reassess only if 2+ more downgrades appear before April 22.<br>
+                    3. <strong>Verify PLTR earnings date</strong> at investors.palantir.com — CRITICAL for Phase B exit window.<br>
+                    4. <strong>Verify NVDA earnings date</strong> at nvidia.com/investors — CRITICAL.<br>
+                    5. <strong>TSLA April 22 AH</strong> — Watch for sector dip opportunity in NVDA/META.
+                </div>
+            </div>
+            <div class="change-log-entry has-change" style="border-left:4px solid #d32f2f;background:rgba(211,47,47,0.13);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #d32f2f; margin-bottom: 8px; font-size:15px;">🚨 April 9, 2026 — v2.1 — EARLY TRIGGER — PLTR LIMIT TARGET BREACHED</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ef9a9a;">
+                    <strong style="color:#d32f2f;">TRIGGER:</strong> PLTR closed at $130.47 — BELOW $133 GTC limit buy target. Day low $128.47. GTC order MAY HAVE EXECUTED.<br><br>
+
+                    <strong style="color:#d32f2f;">🚨 PLTR — LIMIT TARGET BREACHED:</strong> $130.47 close (range: $128.47–$139.40). Was $141.17 in v2.0 (earlier today). Further -7.6% intraday drop. GTC limit buy at $133 likely FILLED.<br>
+                    &nbsp;&nbsp;&nbsp;WHY: Michael Burry called PLTR a "bubble" and said Anthropic is "eating their lunch." Ongoing Anthropic Managed Agents competitive narrative. Insider selling: $432.9M past 3 months, zero buying.<br><br>
+
+                    <strong style="color:#ff7043;">NVDA:</strong> ~$182.08 (target $156) — UP +0.2% vs v2.0. Essentially flat. Still 16.7% above target. No change.<br>
+                    <strong style="color:#66BB6A;">META:</strong> ~$628.68 (target $489) — UP +2.7% vs v2.0. CoreWeave $21B AI cloud deal (through Dec 2032) announced. Bullish for April 29 earnings. Moving further from target. No entry action.<br>
+                    <strong style="color:#ff7043;">TSLA:</strong> ~$360 — Excluded. Earnings April 22 AH (13 days).<br><br>
+
+                    <strong style="color:#66BB6A;">✅ VIX:</strong> ~21.0 — DOWN sharply from 24.53 (v2.0). Ceasefire holding. Fear easing. DO NOT ENTER rule lifted.<br>
+                    <strong style="color:#66BB6A;">✅ QQQ:</strong> ~$606–610 — Firmly ABOVE 50-day MA. Nasdaq +2.8% today. QQQ above MA for 2nd consecutive day. Bearish thesis weakening.<br>
+                    <strong style="color:#66BB6A;">✅ Ceasefire Holding:</strong> Oil at $94.41/barrel (down 16% today). Risk premium falling.<br>
+                    <strong style="color:#66BB6A;">✅ META CoreWeave $21B:</strong> Long-term AI infrastructure deal through 2032. Confirms AI capex supercycle.<br>
+                    <strong style="color:#FFA726;">⚠️ PLTR Earnings Discrepancy:</strong> New source shows May 4 (vs. May 11 consensus). Verify at investors.palantir.com.<br>
+                    <strong style="color:#FFA726;">⚠️ NVDA Earnings Discrepancy:</strong> May 20 (WSH) vs May 27 (TipRanks) — persists. Verify at nvidia.com/investors.<br><br>
+
+                    <strong style="color:#d32f2f;">⚡ IMMEDIATE ACTIONS:</strong><br>
+                    1. 🚨 <strong>CHECK BROKER NOW</strong> — Did GTC limit buy at $133 FILL? PLTR hit $128.47 intraday. If filled: you are long PLTR at $133 (~-1.9% unrealized at $130.47 close).<br>
+                    2. <strong>IF FILLED</strong> — Entry secured below target. Size for potential further decline to $120–125 range (Burry narrative risk). Hold for earnings (verify May 4 vs May 11).<br>
+                    3. <strong>IF NOT FILLED</strong> — PLTR now BELOW your $133 limit. Options: (a) wait for bounce; (b) lower limit to $128; (c) enter at market.<br>
+                    4. Verify PLTR earnings date (May 4 vs May 11) at investors.palantir.com — critical for Phase B exit timing.<br>
+                    5. Verify NVDA earnings date (May 20 vs May 27) at nvidia.com/investors — STILL UNRESOLVED.
+                </div>
+                <div style="font-size:11px;color:#999;margin-top:8px;text-align:right;">Automated daily check — v2.1 — April 9, 2026</div>
+            </div>
+
+
+            <div class="change-log-entry has-change" style="border-left:4px solid #f44336;background:rgba(200,30,30,0.10);margin-bottom:16px;">
+                <div style="font-weight: bold; color: #f44336; margin-bottom: 8px; font-size:15px;">🚨 April 9, 2026 — v2.0 — EARLY TRIGGER UPDATE — SIGNIFICANT CHANGES</div>
+                <div style="font-size: 13px; line-height: 1.7; color: #ef9a9a;">
+                    <strong style="color:#f44336;">TRIGGER:</strong> PLTR fell -6.3% (>5% move); QQQ broke above 50-day MA; Iran-US ceasefire (major macro shift).<br><br>
+
+                    <strong style="color:#f44336;">⚠️ PLTR — APPROACHING ENTRY:</strong> ~$141.17 (was $154.87 in v1.9). DROP -8.9%. Now only <strong>$8 above $133 target</strong> (6.1% gap). PRE-EARNINGS DIP ACTIVE.<br>
+                    &nbsp;&nbsp;&nbsp;WHY PLTR FELL: Anthropic launched 'Managed Agents' — direct competitive threat to PLTR's AIP platform. UK regulatory AI scrutiny also cited. Valuation (261x P/E) amplified the sell-off.<br><br>
+
+                    <strong style="color:#ff7043;">NVDA:</strong> ~$181.77 (target $156) — DOWN -1.4% vs v1.9. Still 16.5% above target. No change.<br>
+                    <strong style="color:#ff7043;">META:</strong> ~$606–629 (target $489) — UP +5–9%. Launched 'Muse Spark' AI model (Meta Superintelligence Lab). Moving FURTHER from target. No action.<br>
+                    <strong style="color:#ff7043;">TSLA:</strong> ~$360 — Excluded. Reports April 22 AH (13 days). Watch for spillover volatility.<br><br>
+
+                    <strong style="color:#f44336;">⚠️ SCENARIO CHANGE:</strong> QQQ at ~$606 — BROKE ABOVE 50-day MA (~$600–603). Market scenario shifting: BEARISH → NEUTRAL. Death cross potentially reversing.<br>
+                    <strong style="color:#ff7043;">VIX:</strong> ~24.53 — Still below 25. DO NOT ENTER restriction remains LIFTED.<br><br>
+
+                    <strong style="color:#66BB6A;">✅ MACRO BULLISH — Iran-US Ceasefire (April 8):</strong> WTI crude fell 18% → $92/barrel (from $112). Strait of Hormuz risk significantly reduced. Fed rate cut bets revived.<br>
+                    <strong style="color:#66BB6A;">✅ MACRO BULLISH — META Muse Spark:</strong> Open-source AI model, competitive signal positive for AI sector broadly.<br>
+                    <strong style="color:#ffa726;">⚠️ CAUTION — Ceasefire is 2-week temporary deal only.</strong> Iran must fully open Hormuz. Risk premium could return.<br>
+                    <strong style="color:#ffa726;">⚠️ COMPETITION — Anthropic Managed Agents:</strong> Hosted long-running AI tasks — direct PLTR threat narrative.<br><br>
+
+                    <div style="background:rgba(244,67,54,0.15);border:1px solid #f44336;border-radius:4px;padding:10px;margin-top:8px;">
+                    <strong style="color:#f44336;">⚡ ACTIONS REQUIRED:</strong><br>
+                    1. <strong>PLTR WATCH:</strong> Confirm GTC limit order at $133 is active in broker. Only $8 away — may fill BEFORE April 24.<br>
+                    2. <strong>SCENARIO REVIEW:</strong> If QQQ holds above 50-day MA 2+ more days → consider revising entry levels upward (bearish thesis weakening).<br>
+                    3. <strong>PLTR RISK:</strong> Anthropic competition narrative may push PLTR below $133. Size position accordingly.<br>
+                    4. <strong>TSLA EARNINGS (Apr 22):</strong> Disappointment = broad tech selloff → PLTR/NVDA dip opportunity window.<br>
+                    5. <strong>NVDA EARNINGS DATE:</strong> Verify May 20 vs May 27 at nvidia.com/investors — UNRESOLVED.<br>
+                    </div>
+                </div>
+                <div style="font-size:11px;color:#ef5350;margin-top:8px;">— Automated daily check (v2.0 / April 9, 2026 — EARLY TRIGGER) —</div>
+            </div>
+            <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);">
+                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 8px;">✅ April 8, 2026 — v1.9 — SCHEDULED CHECK — WITHIN 72H CADENCE — NO UPDATE REQUIRED</div>
+                <div style="font-size: 14px; line-height: 1.6; color: #a5d6a7;">
+                    <strong style="color:#66BB6A;">CADENCE:</strong> Only 24h since v1.8 (April 7). 72h cadence → next full update April 10. No early triggers met.<br>
+                    <strong style="color:#66BB6A;">PRICES (Apr 8 vs bearish targets):</strong> PLTR ~$154.87 (target $133, +4.4% vs v1.8, now 16.4% above — moving AWAY) | NVDA ~$184.38 (target $156, +3.8% vs v1.8, now 18.2% above — moving AWAY) | META ~$575.76 (target $489, flat vs v1.8, 17.7% above). All active stocks UP — no entries approaching.<br>
+                    <strong style="color:#66BB6A;">MARKET:</strong> VIX ~24.17 (unchanged, still &lt;25 — entry restriction remains LIFTED). QQQ ~$588.50, still below 50-day MA (~$600-603). Bearish scenario unchanged. S&amp;P recovering but no breakout confirmed.<br>
+                    <strong style="color:#FFA726;">NEW MACRO:</strong> SCOTUS struck down IEEPA tariffs (6-3) — bullish for tech, tariff rollback potential. Iran conflict ongoing — Strait of Hormuz closure, oil at $112/barrel. Goldman bear case: S&amp;P to 5,400 if escalates. Fed holding at 3.50-3.75%.<br>
+                    <strong style="color:#66BB6A;">ANALYST:</strong> SHOP Wolfe Research downgraded to Peerperform (new — excluded stock, no plan impact). NVDA KeyBanc Overweight $275 PT unchanged.<br>
+                    <strong style="color:#66BB6A;">EARNINGS (unchanged):</strong> TSLA April 22 AH (excluded, 14 days — volatility watch) | META April 29 AH (active, 21 days) | SHOP April 30 BO (excluded) | PLTR May 11 ✓ | NVDA May 20 (discrepancy vs May 27 persists — verify nvidia.com).<br>
+                    <strong style="color:#4CAF50;">ACTION: NO CHANGES. Limit buys active: PLTR $133 | NVDA $156 | META $489. Watch TSLA Apr 22 for volatility. Next full update: April 10, 2026.</strong>
+                </div>
+            </div>
+            <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);">
+                <div style="font-weight: bold; color: #4CAF50; margin-bottom: 8px;">✅ April 7, 2026 — v1.8 — NO SIGNIFICANT CHANGES — ALL TRADE PARAMETERS UNCHANGED</div>
+                <div style="font-size: 14px; line-height: 1.6; color: #a5d6a7;">
+                    <strong style="color:#66BB6A;">PRICES (Apr 7 vs bearish targets):</strong> PLTR ~$148.39 (target $133, flat vs v1.7, 11.6% above) | NVDA ~$177.64 (target $156, +0.5%, 13.9% above) | META ~$573.69 (target $489, flat, 17.3% above). All 3 active stocks essentially unchanged. No entries approaching.<br>
+                    <strong style="color:#66BB6A;">MARKET:</strong> VIX 24.20 (slightly up from 23.87, still &lt;25 — entry restriction LIFTED). QQQ ~$588.50, still below 50-day MA (~$603). Bearish trend intact. April 7 rally: S&amp;P +0.5%, Nasdaq +0.5% on Middle East ceasefire hopes. Oil fell sharply.<br>
+                    <strong style="color:#FFA726;">MACRO RISK:</strong> Trump tariff regime (10% baseline + 25-34% on China/Taiwan/Vietnam) continues weighing on tech. Fed reiterated tariffs larger than expected — inflation + growth risk ongoing. S&amp;P down 4.6% for Q1 2026.<br>
+                    <strong style="color:#66BB6A;">EARNINGS (unchanged):</strong> TSLA April 22 AH (excluded, 15 days — volatility event) | META April 29 AH (active, 22 days) | SHOP April 30 BO (excluded) | PLTR May 11 ✓ | NVDA May 20 (discrepancy vs May 27 persists — verify nvidia.com).<br>
+                    <strong style="color:#66BB6A;">ANALYST (since v1.7):</strong> NVDA: KeyBanc reiterated Overweight $275 PT (Apr 6). All other ratings unchanged.<br>
+                    <strong style="color:#4CAF50;">ACTION: NO CHANGES. Limit buys remain active: PLTR $133 | NVDA $156 | META $489. Watch TSLA Apr 22 for volatility. Next update: April 10, 2026. Early update if VIX &gt;25 or any active stock drops 5%+.</strong>
+                </div>
+            </div>
+            <div class="change-log-entry" style="border-left: 4px solid #cc0000; padding: 12px 16px; margin-bottom: 16px; background: #fff5f5;">
+                <div style="font-weight: bold; color: #cc0000; margin-bottom: 8px;">✅ April 4, 2026 — v1.7 — VIX 3-DAY COUNTDOWN COMPLETE — DO NOT ENTER RESTRICTION LIFTED</div>
+                <div style="font-size: 14px; line-height: 1.6;">
+                    <strong>VIX COUNTDOWN COMPLETE:</strong> VIX closed 23.87 on Apr 3. Day 1 (Apr 1) ✓ | Day 2 (Apr 2) ✓ | Day 3 (Apr 3) ✓. <strong style="color:#1E7D32;">DO NOT ENTER restriction is LIFTED.</strong> Limit orders now ACTIVE.<br>
+                    <strong>Prices (Apr 3 close):</strong> PLTR $148.62 (11.7% above $133 target, rallied) | NVDA $176.70 (13.3% above $156, moving away) | META $574.46 (17.5% above $489). All prices WELL ABOVE targets — no fills expected near-term.<br>
+                    <strong>Market:</strong> QQQ ~$584, still ~3.1% below 50-day MA (~$603). Bearish trend intact but narrowing. VIX improving (30.61 → 23.87 in 4 days). Tariff rhetoric moderating.<br>
+                    <strong>NVDA Earnings:</strong> Discrepancy PERSISTS — May 20 (WSH) vs May 27 (TipRanks). Verify on nvidia.com/investors.<br>
+                    <strong>Action:</strong> 1) Confirm limit buys SET on E*Trade (PLTR $133, NVDA $156, META $489) — now live. 2) Monitor for pullbacks — prices 12-18% above targets. 3) Next update: April 7 (72h). Early update if VIX &gt; 25 or stock drops 5%+.
+                </div>
+            </div>
+
+            <div class="change-log-entry" style="border-left: 4px solid #cc0000; padding: 12px 16px; margin-bottom: 16px; background: #fff5f5;">
+                <div style="font-weight: bold; color: #cc0000; margin-bottom: 8px;">⚠️ April 3, 2026 — v1.6 — VIX DAY 3 COMPLETE — ENTRY WINDOW MAY OPEN APRIL 4</div>
+                <div style="font-size: 14px; line-height: 1.6;">
+                    <strong>VIX 3-Day Countdown — Day 3:</strong> VIX at 23.87 (intraday high 27.89 — volatile). If closes below 25 today → DO NOT ENTER restriction lifts April 4.<br>
+                    <strong>Prices:</strong> PLTR ~$143.49 (7.9% above $133 target) | NVDA ~$170.77 (9.5% above $156 target, moving away) | META ~$573.83 (17.3% above $489 target)<br>
+                    <strong>TSLA Earnings Confirmed:</strong> April 22, 2026 AH (was unconfirmed). TSLA excluded but affects volatility window.<br>
+                    <strong>NVDA Earnings:</strong> Discrepancy persists — May 20 (WSH) vs May 27 (TipRanks).<br>
+                    <strong>New Risks:</strong> Hedge funds selling at fastest pace in 13 years. TSLA Q1 delivery miss (358K). QQQ still ~5-7% below 50-day MA.<br>
+                    <strong>Action:</strong> CHECK VIX AT CLOSE TODAY. If below 25 → verify limit buys are SET on E*Trade (PLTR $133, NVDA $156, META $489). Prices well above targets — no fills expected immediately.
+                </div>
+            </div>
+
+      <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);">
+        <div class="change-date" style="color:#4CAF50;font-weight:700;">✅ April 2, 2026 — v1.5 — VIX Day 2 Monitoring: No Significant Changes</div>
+        <div class="change-content" style="color:#a5d6a7;font-size:12px;line-height:1.7;">
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">VIX 3-DAY COUNTDOWN:</strong> Day 2 of 3. VIX closed ~24.51 (intraday high 25.13 — close call but held below 25). Day 1 ✓ | Day 2 ✓ | Day 3 = April 3 (pending). If VIX closes &lt;25 tomorrow → DO NOT ENTER rule lifts April 4.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">PRICES:</strong> PLTR $137.55 (+0.3%, 3.4% from $133 target) | NVDA $165.17 (+0.3%, 5.9% from $156) | META $570.33 (flat, 16.6% from $489). No entries approaching. SHOP &amp; TSLA excluded.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">MACRO:</strong> Liberation Day 1-year anniversary. SCOTUS tariff refund ($166B) underway — mildly bullish. 15% Section 122 tariff unchanged. Fed dovish tilt (expected 50bp cut to 3-3.25%).</div>
+          <div><strong style="color:#4CAF50;">ACTION: NO CHANGES. Tomorrow (April 3) is CRITICAL — VIX Day 3. Next full update: April 4, 2026.</strong></div>
+        </div>
+      </div>
+      <div class="change-log-entry" style="border-left:4px solid #FFA726;background:rgba(191,105,0,0.12);">
+        <div class="change-date" style="color:#FFA726;font-weight:700;font-size:14px;">⚠️ April 1, 2026 — v1.4 — SIGNIFICANT UPDATE: VIX DROPS BELOW 25 — START 3-DAY CLOCK</div>
+        <div class="change-content" style="color:#ffe0b2;font-size:12px;line-height:1.7;">
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">⚠ VIX CRITICAL:</strong> VIX 24.51 — DOWN from 30.61. <strong>First close below 25 since bearish scenario activated.</strong> Plan rule: need 3 consecutive closes below 25 to lift DO NOT ENTER. Day 1 = April 1. If holds through April 3 → entries permitted April 4.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">PRICES (vs bearish targets):</strong> PLTR $137.15 (target $133, only 3.1% away — <strong>APPROACHING ENTRY</strong>) | NVDA $164.75 (target $156, 5.6% away) | META $570.33 (target $489, 16.6% away — bounced, least likely). SHOP &amp; TSLA excluded.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">MARKET:</strong> QQQ $577.18 (up 2.6% from v1.3, still ~5% below 50-day MA ~$600-606). March 31 rally on peace talks news. Tariff situation unchanged (15% universal). Sentiment improving but bearish trend intact.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">TSLA EARNINGS:</strong> New discrepancy — some sources show April 21 (was April 28). TSLA excluded from plan, but shifts market volatility window. Verify.</div>
+          <div><strong style="color:#FFA726;">ACTIONS: 1) Track VIX daily — need 3 closes &lt;25. 2) Ensure PLTR $133 limit buy is SET on E*Trade. 3) NO ENTRIES YET. 4) Next update: April 3 (VIX Day 3 + 72h cadence).</strong></div>
+        </div>
+      </div>
+      <div class="change-log-entry no-change" style="border-left:4px solid #4CAF50;background:rgba(30,125,50,0.08);">
+        <div class="change-date" style="color:#4CAF50;font-weight:700;">✅ March 31, 2026 — v1.3 — MONITORING UPDATE: No Action Changes Required</div>
+        <div class="change-content" style="color:#a5d6a7;font-size:12px;line-height:1.7;">
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">PRICES (vs revised bearish targets):</strong> PLTR $144.19 (target $133, +8.4%) | NVDA $167.52 (target $156, +7.4%) | META $532.31 (target $489, +8.9%). All above entry levels. SHOP &amp; TSLA remain excluded.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">⚠ QQQ DECLINE:</strong> QQQ $562.58 — down 4.3% from v1.2. Now ~7% below 50-day MA (~$600-606). Bearish trend deepening. VIX 30.61 — still above 30 DO NOT ENTER threshold.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">EARNINGS DATE RESOLVED:</strong> PLTR earnings NOW CONFIRMED May 11 (was May 4 vs May 11 discrepancy). All other dates unchanged.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#66BB6A;">ANALYST:</strong> Morgan Stanley cut META PT $825→$775 (kept Overweight, called it "time to buy"). No impact to plan.</div>
+          <div><strong style="color:#4CAF50;">ACTION: No changes. All v1.2 bearish rules remain. Next update: April 3, 2026.</strong></div>
+        </div>
+      </div>
+      <div class="change-log-entry" style="border-left:4px solid #b71c1c;background:#1a0a0a;">
+        <div class="change-date" style="color:#ff1744;font-weight:700;font-size:14px;">🚨 March 29, 2026 — v1.2 — CRITICAL UPDATE: ALL 5 STOCKS BELOW LIMIT BUY TARGETS — RECALIBRATE NOW</div>
+        <div class="change-content" style="color:#ef9a9a;font-size:12px;line-height:1.7;">
+          <div style="margin-bottom:8px;"><strong style="color:#ff1744;">PRICE ALERT — ALL POSITIONS BREACHED ORIGINAL TARGETS:</strong><br>
+          • <strong>PLTR $143</strong> (plan: $154.78) — 7.6% drop in 5 days, below $148 limit. BEARISH REVISED LIMIT: <strong>$133</strong><br>
+          • <strong>SHOP $111.85</strong> (plan: $121.10) — 7.6% drop, below $113 limit. <strong>DROP — do not enter</strong> (bearish rules)<br>
+          • <strong>NVDA $167.69</strong> (plan: $179.45) — 6.5% drop, below $172 limit. BEARISH REVISED LIMIT: <strong>$156</strong><br>
+          • <strong>META $525.72</strong> (plan: $592.92) — 11.3% drop, below $573 limit. BEARISH REVISED LIMIT: <strong>$489</strong><br>
+          • <strong>TSLA $361.83</strong> (plan: $385.95) — below $369 limit. <strong>DO NOT ENTER</strong> (bearish rules)</div>
+          <div style="margin-bottom:8px;"><strong style="color:#ff1744;">⚠ VIX WARNING — THRESHOLD BREACHED:</strong> VIX hit 31.05 on March 27 — ABOVE the plan's 30-point DO NOT ENTER threshold. Current range: 27–31. VIX MUST stabilize below 25 for 3 consecutive days before any entries. QQQ $587.82 remains below all 50-day MA estimates ($606–$609).</div>
+          <div style="margin-bottom:8px;"><strong style="color:#ff1744;">NEW MACRO RISKS:</strong> Strait of Hormuz closed (Brent crude ~$110/bbl). Hot PPI +0.7% (tariff-driven structural inflation). Nasdaq officially in correction (−10%+ from peak). Fed held 3.5–3.75%, only 1 cut projected for 2026.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#FFA726;">EARNINGS CONFIRMED:</strong> META Apr 29 AH ✓ | SHOP Apr 30 BO ✓ | TSLA Apr 28 AH ✓ | NVDA May 20 AH ✓ | PLTR May 4 (most cited) vs May 11 (TipRanks) — DISCREPANCY, verify before entry.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#ff1744;">ACTIONS:</strong> 1) Priority NVDA ($156) > PLTR ($133) > META ($489). 2) DROP SHOP &amp; TSLA. 3) Reduce sizes 30–40%. 4) Cash reserve min 20%. 5) If VIX &gt;25 at April 24 entry → 2-tranche deploy. If VIX &gt;30 → HOLD ALL CASH.</div>
+          <div><strong style="color:#FFA726;">Next scheduled update: April 1, 2026</strong></div>
+        </div>
+      </div>
+      <div class="change-log-entry" style="border-left:4px solid #ef5350;background:#2a1a1a;">
+        <div class="change-date" style="color:#ef5350;font-weight:700;">⚠ March 28, 2026 — v1.1 — SIGNIFICANT CHANGES (Early Update: Material Changes Detected)</div>
+        <div class="change-content" style="color:#ef9a9a;font-size:12px;line-height:1.7;">
+          <div style="margin-bottom:8px;"><strong style="color:#ef5350;">SCENARIO → BEARISH:</strong> VIX 27.44 (>25). QQQ $587.82 below 50-day MA $608.66. Fed held 3.5-3.75%, higher inflation outlook. New tariff investigations Mar 11. <strong>Action: Reduce allocations 30-40%. Priority: NVDA > PLTR > META. Drop SHOP & TSLA.</strong></div>
+          <div style="margin-bottom:8px;"><strong style="color:#ef5350;">PRICE ALERTS:</strong><br>
+          • META ~$520 vs plan $593 (−12.3%) — Lost major lawsuits. Below $573 limit. Recalculate or drop.<br>
+          • SHOP ~$111 vs plan $121 (−8.2%) — Below $113 limit. DROP per bearish rules.<br>
+          • PLTR ~$146 vs plan $155 (−5.7%) — Below $148 limit. Recalculate entry to ~$134-137.<br>
+          • NVDA ~$179 vs plan $179 (flat) — $172 limit still valid. Increase allocation.<br>
+          • TSLA ~$386 (unchanged) — Do NOT enter per bearish rules.</div>
+          <div style="margin-bottom:8px;"><strong style="color:#ef5350;">EARNINGS DATES:</strong> TSLA Apr 28 now CONFIRMED. PLTR may shift May 4→11 (verify). NVDA may shift May 20→27 (verify).</div>
+          <div><strong style="color:#FFA726;">Next update: March 31, 2026</strong></div>
+        </div>
+      </div>
+      <div class="change-log-entry no-change">
+        <div class="change-date">March 26, 2026 — v1.0 — INITIAL BUILD</div>
+        <div class="change-content" style="color:#4CAF50;">No Significant Changes to Report. Initial dashboard created. Next update: March 29, 2026.</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#8eaacf;">Updates prepended automatically. Red = changes. Green = no change.</div>
+  </div>
+
+  <!-- QUICK REFERENCE -->
+  <div class="card">
+    <div class="card-title">⚡ QUICK REFERENCE — E*TRADE ORDER CHECKLIST</div>
+    <div style="font-size:12px;line-height:1.8;">
+      <div style="margin-bottom:6px;color:#8eaacf;font-size:11px;font-weight:700;">ON ENTRY (per position):</div>
+      <div>☐ Limit Buy order (GTC) at target price</div>
+      <div>☐ Stop Loss order (GTC) at stop level</div>
+      <div>☐ Limit Sell order (GTC) for 50% shares at T1</div>
+      <div style="margin-top:10px;margin-bottom:6px;color:#8eaacf;font-size:11px;font-weight:700;">AFTER STAGE 1 FILLS:</div>
+      <div>☐ Cancel original stop (was 100% shares)</div>
+      <div>☐ Set Trailing Stop % on remaining 50%</div>
+      <div style="margin-top:10px;margin-bottom:6px;color:#8eaacf;font-size:11px;font-weight:700;">IF MISS (stop triggers):</div>
+      <div>☐ No action needed — stop auto-executes</div>
+      <div>☐ Cancel any remaining limit sells</div>
+      <div>☐ Document result in trading log</div>
+      <div style="margin-top:10px;margin-bottom:6px;color:#8eaacf;font-size:11px;font-weight:700;">48HR PRE-ENTRY SCORE ≥ 8/10:</div>
+      <div>☐ Confirm earnings date unchanged</div>
+      <div>☐ Verify stock has dipped 3%+ from 5-day high</div>
+      <div>☐ Check VIX &lt; 25</div>
+      <div>☐ No major negative news in 48 hours</div>
+      <div>☐ Set all orders for that position</div>
+    </div>
+  </div>
+
+</div><!-- end main-grid -->
+
+<div class="footer-bar">
+  NOT FINANCIAL ADVICE &nbsp;|&nbsp; All prices must be verified on E*Trade before placing orders &nbsp;|&nbsp;
+  Dashboard v1.0 — 2026 Earnings Swing Trading Master Plan &nbsp;|&nbsp;
+  Open this file in any web browser. Live prices require internet connection.
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPANY ROSTER — Single source of truth for all tracked candidates.
+//
+// STATUS RULES:
+//   'watching'    → Being monitored. Can be SWAPPED OUT if a better candidate
+//                   emerges. Call swapCompany(oldTicker, newTicker, newConfig).
+//   'in-position' → A trade has been entered. LOCKED — cannot be removed until
+//                   the trade is closed. Call markExited(ticker) to unlock.
+//   'exited'      → Trade closed. Kept for audit trail, greyed out on dashboard.
+//
+// TO SWAP A COMPANY BEFORE ENTRY (e.g. replace TSLA with AMZN):
+//   swapCompany('TSLA', 'AMZN', { name:'Amazon', entry:180, stop:168, t1:198,
+//     t2:215, earningsDate:'May 1 (Proj.)', entryWindow:'Entry: Apr 26–29',
+//     phase:'A', badge:'Phase A', badgeClass:'badge-phase-a',
+//     entryLabel:'Limit Buy', entryClass:'buy-zone', tileClass:'' });
+//
+// swapCompany() silently refuses if status is 'in-position' or 'exited'.
+// ══════════════════════════════════════════════════════════════════════════════
+const ROSTER = {
+  SHOP: {
+    name: 'Shopify',        phase: 'A', badge: 'Phase A', badgeClass: 'badge-phase-a',
+    entry: 113.00, stop: 106.00, t1: 127.00, t2: 140,
+    earningsDate: 'Apr 30 (Conf.)', entryWindow: 'Entry: Apr 25–28',
+    entryWindowEnd: '2026-04-28',
+    entryLabel: 'Limit Buy', entryClass: 'buy-zone', tileClass: 'entry-window',
+    nextAction: 'N/A — Earnings passed, guidance miss. Next: Jul 29',
+    status: 'watching'
+  },
+  META: {
+    name: 'Meta Platforms', phase: 'A', badge: 'Phase A', badgeClass: 'badge-phase-a',
+    entry: 573.00, stop: 549.00, t1: 618.00, t2: 642,
+    earningsDate: 'Apr 29 (Proj.)', entryWindow: 'Entry: Apr 24–27',
+    entryWindowEnd: '2026-04-27',
+    entryLabel: 'Limit Buy', entryClass: 'watch', tileClass: '',
+    nextAction: 'N/A — Entry window closed. Monitor only.',
+    status: 'watching'
+  },
+  TSLA: {
+    name: 'Tesla',          phase: 'A', badge: 'Tertiary', badgeClass: '',
+    badgeStyle: 'background:#555;color:#aaa',
+    entry: 369.00, stop: 339.00, t1: 425.00, t2: 462,
+    earningsDate: 'Apr 28 (Proj.)', entryWindow: 'Conditional — 15% cap max',
+    entryWindowEnd: '2026-04-28',
+    entryLabel: 'Cond. Buy*', entryClass: '', entryStyle: 'color:#888', tileClass: '',
+    nextAction: 'Excluded — No entry per plan',
+    status: 'watching'
+  },
+  PLTR: {
+    name: 'Palantir',       phase: 'B', badge: 'Phase B ★', badgeClass: 'badge-phase-b',
+    entry: 148.00, stop: 137.50, t1: 170.00, t2: 190,
+    earningsDate: 'May 4 (Conf.)', entryWindow: 'Entry: Apr 30–May 1',
+    entryWindowEnd: '2026-05-01',
+    entryLabel: 'Limit Buy', entryClass: 'buy-zone', tileClass: '',
+    nextAction: 'N/A — Thesis cracked below $140. Next earnings: Aug 10',
+    status: 'watching'
+  },
+  NVDA: {
+    name: 'NVIDIA',         phase: 'C', badge: 'Top Dip ★', badgeClass: 'badge-top-dip',
+    entry: 190.00, stop: 165.00, t1: 215.00, t2: 230,
+    earningsDate: 'May 20 (Conf.)', entryWindow: 'Entry: May 14–18',
+    entryWindowEnd: '2026-05-18',
+    entryLabel: 'GTC Limit', entryClass: 'buy-zone', tileClass: '',
+    nextAction: 'GTC $190–195 live — Watch May 14–18 dip window',
+    status: 'watching'
+  }
+};
+
+// Price maps derived from ROSTER — rebuilt after every swap
+let ENTRY_PRICES = {}, STOP_PRICES = {}, T1_PRICES = {};
+function buildPriceMaps() {
+  ENTRY_PRICES = {}; STOP_PRICES = {}; T1_PRICES = {};
+  Object.entries(ROSTER).forEach(([tk, c]) => {
+    ENTRY_PRICES[tk] = c.entry;
+    STOP_PRICES[tk]  = c.stop;
+    T1_PRICES[tk]    = c.t1;
+  });
+}
+buildPriceMaps();
+
+// ── KEY DATES ─────────────────────────────────────────────────────────────────
+const PHASE_A_ENTRY   = new Date('2026-04-24T09:30:00-04:00');
+const PHASE_B_ENTRY   = new Date('2026-04-30T09:30:00-04:00');
+const ACTIVATION_DATE = new Date('2026-04-24T09:30:00-04:00');
+
+// Ordered list of upcoming entry/earnings events used by the countdown.
+// The first one still in the future is displayed.
+const UPCOMING_EVENTS = [
+  { date: new Date('2026-05-14T09:30:00-04:00'), label: 'NVDA Entry Window Opens — May 14' },
+  { date: new Date('2026-05-20T16:00:00-04:00'), label: 'NVDA Earnings (AH) — May 20' },
+  { date: new Date('2026-05-22T16:00:00-04:00'), label: 'Period 1 Ends — May 22' },
+  { date: new Date('2026-07-15T09:30:00-04:00'), label: 'Period 2 Entry Window — Jul 15' },
+];
+
+// Progress bar segments — driven by calendar dates so "current" moves automatically.
+const PROGRESS_SEGMENTS = [
+  { label: 'Mar 26', start: '2026-03-26', end: '2026-04-24', description: 'Pre-entry monitoring' },
+  { label: 'Apr 24', start: '2026-04-24', end: '2026-05-01', description: 'Phase A entry window' },
+  { label: 'May 1',  start: '2026-05-01', end: '2026-05-04', description: 'PLTR / SHOP earnings' },
+  { label: 'May 4',  start: '2026-05-04', end: '2026-05-18', description: 'NVDA entry window' },
+  { label: 'May 18', start: '2026-05-18', end: '2026-05-22', description: 'Period 1 close-out' },
+];
+
+// Timeline dot states are driven by data-date attributes on each .timeline-item
+// element — see updateTimelineDots() below.
+
+let lastPrices = {};
+let currentChartTicker = null;
+
+// ── DYNAMIC TILE BUILDER ──────────────────────────────────────────────────────
+// Regenerates the stock grid from ROSTER. Called on init and after every swap.
+function buildStockGrid() {
+  const grid = document.getElementById('stockGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  Object.entries(ROSTER).forEach(([ticker, c]) => {
+    let badgeHtml = '';
+    if (c.badgeClass)   badgeHtml = `<div class="tile-badge ${c.badgeClass}">${c.badge}</div>`;
+    else if (c.badgeStyle) badgeHtml = `<div class="tile-badge" style="${c.badgeStyle}">${c.badge}</div>`;
+
+    const entryStyle = c.entryStyle ? ` style="${c.entryStyle}"` : '';
+
+    let lockBadge = '';
+    if (c.status === 'in-position')
+      lockBadge = '<div style="margin-top:5px;font-size:10px;font-weight:700;color:#4CAF50;letter-spacing:1px;">🔒 IN POSITION — LOCKED</div>';
+    else if (c.status === 'exited')
+      lockBadge = '<div style="margin-top:5px;font-size:10px;font-weight:700;color:#8eaacf;letter-spacing:1px;">✅ TRADE CLOSED</div>';
+
+    const dimStyle = c.status === 'exited' ? ' style="opacity:0.45;"' : '';
+
+    grid.insertAdjacentHTML('beforeend', `
+      <div class="stock-tile ${c.tileClass}" id="tile-${ticker}"${dimStyle}>
+        ${badgeHtml}
+        <div class="tile-ticker">${ticker}</div>
+        <div class="tile-label">${c.name}</div>
+        <div class="tile-price" id="price-${ticker}">—</div>
+        <div class="tile-change" id="change-${ticker}">—</div>
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;margin-top:4px;">
+          <div class="tile-entry ${c.entryClass}"${entryStyle}>🎯 ${c.entryLabel}: $${c.entry.toFixed(2)}</div>
+          <div class="tile-stop">⛔ Stop: $${c.stop.toFixed(2)}</div>
+          <div class="tile-target">✅ T1: $${c.t1} | T2: $${c.t2}+</div>
+        </div>
+        ${lockBadge}
+        <div class="tile-sub">Earnings: ${c.earningsDate}</div>
+        <div class="tile-sub">${c.entryWindow}</div>
+        <button class="chart-btn" onclick="openChart('${ticker}')">📊 Chart + RSI</button>
+      </div>`);
+  });
+}
+
+// ── DYNAMIC POSITION ROW BUILDER ──────────────────────────────────────────────
+function buildPositionRows() {
+  const tbody = document.getElementById('positionRows');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  Object.entries(ROSTER).forEach(([ticker, c]) => {
+    let statusHtml, nextAction;
+    if (c.status === 'in-position') {
+      statusHtml = '<span style="color:#4CAF50;font-size:11px;">✅ IN POSITION</span>';
+      nextAction = 'Monitor — manage stops';
+    } else if (c.status === 'exited') {
+      statusHtml = '<span style="color:#8eaacf;font-size:11px;">☑ EXITED</span>';
+      nextAction = 'Closed';
+    } else {
+      statusHtml = '<span style="color:#FFA726;font-size:11px;">⏳ WATCHING</span>';
+      // Use explicit nextAction if set; otherwise fall back to entry window
+      // or "N/A" if the entry window end date has already passed
+      if (c.nextAction) {
+        nextAction = c.nextAction;
+      } else if (c.entryWindowEnd && new Date(c.entryWindowEnd) < new Date()) {
+        nextAction = 'N/A — Window closed';
+      } else {
+        const ew = c.entryWindow.replace('Entry: ', '');
+        nextAction = `Set GTC limit ${ew}`;
+      }
+    }
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td class="val-white">${ticker}</td>
+        <td>${statusHtml}</td>
+        <td style="color:#8eaacf;">$${c.entry.toFixed(2)}</td>
+        <td id="cur-${ticker}">—</td>
+        <td>—</td>
+        <td style="font-size:11px;color:#8eaacf;">${nextAction}</td>
+      </tr>`);
+  });
+}
+
+// ── COMPANY SWAP ──────────────────────────────────────────────────────────────
+// Replace a 'watching' company with a new candidate.
+// Returns true on success; false (with console.warn) if locked.
+function swapCompany(oldTicker, newTicker, newConfig) {
+  const existing = ROSTER[oldTicker];
+  if (!existing) {
+    console.warn(`swapCompany: "${oldTicker}" not found in ROSTER.`);
+    return false;
+  }
+  if (existing.status === 'in-position' || existing.status === 'exited') {
+    console.warn(`swapCompany: "${oldTicker}" is LOCKED (status: ${existing.status}). Cannot swap until trade exits.`);
+    return false;
+  }
+  // Preserve ordering — insert new in place of old
+  const entries = Object.entries(ROSTER);
+  const idx     = entries.findIndex(([k]) => k === oldTicker);
+  entries[idx]  = [newTicker, Object.assign({ status: 'watching' }, newConfig)];
+  // Rebuild ROSTER in place
+  Object.keys(ROSTER).forEach(k => delete ROSTER[k]);
+  entries.forEach(([k, v]) => (ROSTER[k] = v));
+
+  buildPriceMaps();
+  buildStockGrid();
+  buildPositionRows();
+
+  // Prepend a swap notice to the on-screen change log
+  const logEl = document.getElementById('changeLog');
+  if (logEl) {
+    logEl.insertAdjacentHTML('afterbegin', `
+      <div class="change-log-entry" style="border-left:4px solid #BF6900;background:rgba(191,105,0,0.1);">
+        <div class="change-date" style="color:#BF6900;font-weight:700;">
+          ⟳ Candidate Swap — ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+        </div>
+        <div class="change-content">
+          <strong style="color:#ef5350;">${oldTicker}</strong> removed from watchlist →
+          replaced by <strong style="color:#4CAF50;">${newTicker}</strong>
+          (${newConfig.name || newTicker}).
+          Earnings: ${newConfig.earningsDate || '—'} | Entry window: ${newConfig.entryWindow || '—'}
+        </div>
+      </div>`);
+  }
+  console.log(`Swap complete: ${oldTicker} → ${newTicker}`);
+  return true;
+}
+
+// ── POSITION STATUS HELPERS ────────────────────────────────────────────────────
+// Call markInPosition('NVDA') the day you actually enter a trade.
+// The tile will show 🔒 IN POSITION and the company becomes unswappable.
+function markInPosition(ticker) {
+  if (!ROSTER[ticker]) return;
+  ROSTER[ticker].status = 'in-position';
+  buildStockGrid();
+  buildPositionRows();
+}
+
+// Call markExited('NVDA') once the trade is fully closed.
+function markExited(ticker) {
+  if (!ROSTER[ticker]) return;
+  ROSTER[ticker].status = 'exited';
+  buildStockGrid();
+  buildPositionRows();
+}
+
+// ── DORMANT CHECK ──────────────────────────────────────────
+function checkDormant() {
+  const now = new Date();
+  const activationTime = new Date(ACTIVATION_DATE - 72*60*60*1000);
+  if(now < activationTime) {
+    // Show dormant overlay with next activation date
+    document.getElementById('nextActivationDate').textContent =
+      ACTIVATION_DATE.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+    document.getElementById('dormantOverlay').classList.add('show');
+  }
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────
+function updateCountdown() {
+  const now = new Date();
+
+  // Find the first upcoming event still in the future
+  let target = null, eventLabel = '';
+  for (const ev of UPCOMING_EVENTS) {
+    if (ev.date > now) { target = ev.date; eventLabel = ev.label; break; }
+  }
+
+  const labelEl = document.getElementById('countdownLabel');
+
+  if (!target) {
+    if (labelEl) labelEl.textContent = '✅ Period 1 Complete — Awaiting Period 2';
+    ['cd-days','cd-hours','cd-mins','cd-secs'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '0';
+    });
+    return;
+  }
+
+  if (labelEl) labelEl.textContent = 'Next: ' + eventLabel;
+
+  const diff  = target - now;
+  const days  = Math.floor(diff / (1000*60*60*24));
+  const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+  const mins  = Math.floor((diff % (1000*60*60)) / (1000*60));
+  const secs  = Math.floor((diff % (1000*60)) / 1000);
+
+  document.getElementById('cd-days').textContent  = days;
+  document.getElementById('cd-hours').textContent = String(hours).padStart(2,'0');
+  document.getElementById('cd-mins').textContent  = String(mins).padStart(2,'0');
+  document.getElementById('cd-secs').textContent  = String(secs).padStart(2,'0');
+
+  const daysEl = document.getElementById('daysToPhaseA');
+  if (daysEl) daysEl.textContent = days;
+}
+
+// ── PROGRESS BAR ──────────────────────────────────────────
+function updateProgressBar() {
+  const bar    = document.getElementById('progressBar');
+  const labels = document.getElementById('progressLabels');
+  if (!bar || !labels) return;
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  bar.innerHTML = PROGRESS_SEGMENTS.map(seg => {
+    const start = new Date(seg.start);
+    const end   = new Date(seg.end);
+    const days  = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    let cls = 'pending';
+    if (now >= end)   cls = 'done';
+    else if (now >= start) cls = 'current';
+    return `<div class="phase-seg ${cls}" style="flex:${days}" title="${seg.description}"></div>`;
+  }).join('');
+
+  // Labels: one per segment start + final end label
+  const labelDates = PROGRESS_SEGMENTS.map(s => s.label);
+  const lastSeg    = PROGRESS_SEGMENTS[PROGRESS_SEGMENTS.length - 1];
+  const endDate    = new Date(lastSeg.end);
+  const endLabel   = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  labels.innerHTML = labelDates.map(l => `<span>${l}</span>`).join('') + `<span>${endLabel}</span>`;
+}
+
+// ── TIMELINE DOTS ─────────────────────────────────────────
+function updateTimelineDots() {
+  const now   = new Date();
+  now.setHours(23, 59, 59, 0);           // treat the full day as past
+  let foundCurrent = false;
+
+  document.querySelectorAll('.timeline-item[data-date]').forEach(item => {
+    const dot      = item.querySelector('.timeline-dot');
+    if (!dot) return;
+    const itemDate = new Date(item.dataset.date);
+    itemDate.setHours(23, 59, 59, 0);
+
+    if (now > itemDate) {
+      dot.className = 'timeline-dot past';
+    } else if (!foundCurrent) {
+      dot.className = 'timeline-dot current';
+      foundCurrent  = true;
+    } else {
+      dot.className = 'timeline-dot future';
+    }
+  });
+}
+
+// ── RECOMMENDATIONS ───────────────────────────────────────
+function updateRecommendations() {
+  const el = document.getElementById('recommendations');
+  if (!el) return;
+
+  const now        = new Date();
+  const nvdaEntry  = new Date('2026-05-14');
+  const nvdaEarn   = new Date('2026-05-20');
+  const period1End = new Date('2026-05-22');
+
+  let html = '';
+
+  if (now < nvdaEntry) {
+    // Between PLTR earnings (May 4) and NVDA entry window (May 14)
+    const daysToNvda = Math.ceil((nvdaEntry - now) / (1000 * 60 * 60 * 24));
+    html = `
+      <div class="reco-box monitor">
+        <div class="reco-title">🎯 PHASE C — NVDA ENTRY WINDOW IN ${daysToNvda} DAY${daysToNvda !== 1 ? 'S' : ''}</div>
+        <div class="reco-text"><strong>Action required before May 14:</strong> Verify GTC limit order $190–195 is live on E*Trade. NVDA is currently trading above the entry zone — no dip yet. If no dip to $190–195 occurs before May 20 earnings, Phase C will not trigger.</div>
+      </div>
+      <div class="reco-box action-needed">
+        <div class="reco-title">⛔ PLTR — NO ACTION</div>
+        <div class="reco-text">Thesis cracked below $140. PLTR must reclaim and hold <strong>$150+</strong> to restore the bull thesis. Do not add. Next PLTR earnings: <strong>Aug 10, 2026</strong>.</div>
+      </div>
+      <div class="reco-box action-needed">
+        <div class="reco-title">⛔ SHOP — NO ACTION</div>
+        <div class="reco-text">Post-earnings guidance miss (-12%). Recovery bounce underway but insufficient for re-entry. Wait for base formation confirmation. Next SHOP earnings: <strong>Jul 29, 2026</strong>.</div>
+      </div>
+      <div class="reco-box on-track">
+        <div class="reco-title">✅ META — MONITOR ONLY</div>
+        <div class="reco-text">Stable ~$613. Hyperscaler AI capex tailwind confirmed ($725B combined 2026). No new entry catalyst until Phase C eval in late May.</div>
+      </div>`;
+
+  } else if (now >= nvdaEntry && now < nvdaEarn) {
+    const daysToEarn = Math.ceil((nvdaEarn - now) / (1000 * 60 * 60 * 24));
+    html = `
+      <div class="reco-box action-needed">
+        <div class="reco-title">⚡ NVDA ENTRY WINDOW OPEN — ${daysToEarn} DAY${daysToEarn !== 1 ? 'S' : ''} TO EARNINGS</div>
+        <div class="reco-text"><strong>Verify GTC $190–195 is live NOW.</strong> If NVDA dips into zone, the order fills automatically. Earnings May 20 AH — T1 sell executes on gap-up. Set trailing stop on remaining 50%.</div>
+      </div>
+      <div class="reco-box on-track">
+        <div class="reco-title">✅ ALL OTHER POSITIONS</div>
+        <div class="reco-text">PLTR, SHOP, META, TSLA: No action. Phase A &amp; B windows closed. Focus entirely on NVDA Phase C.</div>
+      </div>`;
+
+  } else if (now >= nvdaEarn && now < period1End) {
+    html = `
+      <div class="reco-box on-track">
+        <div class="reco-title">✅ NVDA EARNINGS DONE — CLOSING PERIOD 1</div>
+        <div class="reco-text">Evaluate NVDA position result. Bank profits per plan. Calculate Period 2 capital: starting amount + 50% of Period 1 profits. Period 2 entry window opens ~Jul 15, 2026.</div>
+      </div>`;
+
+  } else {
+    // Period 1 complete
+    html = `
+      <div class="reco-box on-track">
+        <div class="reco-title">✅ PERIOD 1 COMPLETE</div>
+        <div class="reco-text">Period 1 closed. Review results and set Period 2 capital allocation. Next entry window: <strong>~July 15, 2026</strong>. Ensure E*Trade Level 2 options approval is active for Period 2.</div>
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── PRICE FETCHING ────────────────────────────────────────
+async function fetchPrice(ticker) {
+  // Route through local proxy — avoids CORS blocks on direct Yahoo Finance requests
+  const url = `/api/yahoo?ticker=${encodeURIComponent(ticker)}&interval=1d&range=2d`;
+  try {
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const result = json.chart.result[0];
+    const meta   = result.meta;
+    const price  = meta.regularMarketPrice || meta.previousClose;
+    const prev   = meta.previousClose || meta.chartPreviousClose;
+    const change = price - prev;
+    const changePct = (change / prev) * 100;
+    return { price, change, changePct, open: meta.regularMarketOpen, high: meta.regularMarketDayHigh, low: meta.regularMarketDayLow };
+  } catch(e) {
+    return null;
+  }
+}
+
+async function refreshPrices() {
+  document.getElementById('priceStatus').textContent = 'Refreshing...';
+  document.getElementById('priceStatus').style.opacity = '0.5';
+
+  // Always pull live from ROSTER — picks up any swapped companies automatically
+  const stockTickers = Object.keys(ROSTER);
+
+  for (const ticker of stockTickers) {
+    const data = await fetchPrice(ticker);
+    if (data) {
+      lastPrices[ticker] = data;
+      updateTile(ticker, data);
+      const curEl = document.getElementById('cur-' + ticker);
+      if (curEl) curEl.textContent = '$' + data.price.toFixed(2);
+    } else {
+      const priceEl = document.getElementById('price-' + ticker);
+      if (priceEl) priceEl.classList.add('loading');
+      const changeEl = document.getElementById('change-' + ticker);
+      if (changeEl) { changeEl.textContent = 'Price unavailable — check E*Trade'; changeEl.className = 'tile-change'; }
+    }
+  }
+
+  // Market context
+  const vixData = await fetchPrice('%5EVIX');
+  const qqqData = await fetchPrice('QQQ');
+  updateMarketContext(vixData, qqqData);
+
+  document.getElementById('priceStatus').textContent = '✓ Updated ' + new Date().toLocaleTimeString();
+  document.getElementById('priceStatus').style.opacity = '1';
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+
+  // Refresh open chart in sync with price refresh
+  if (currentChartTicker) refreshChart();
+}
+
+function updateTile(ticker, data) {
+  const priceEl  = document.getElementById('price-' + ticker);
+  const changeEl = document.getElementById('change-' + ticker);
+  if (!priceEl || !changeEl || !data) return;
+
+  priceEl.textContent = '$' + data.price.toFixed(2);
+  const sign = data.change >= 0 ? '+' : '';
+  changeEl.textContent = `${sign}$${data.change.toFixed(2)} (${sign}${data.changePct.toFixed(2)}%)`;
+  changeEl.className   = 'tile-change ' + (data.change >= 0 ? 'up' : 'down');
+
+  const c    = ROSTER[ticker];
+  const tile = document.getElementById('tile-' + ticker);
+  if (!tile || !c) return;
+
+  // Skip visual highlighting for exited positions
+  if (c.status === 'exited') return;
+
+  // Already in position — no need to show buy zone alerts
+  if (c.status === 'in-position') return;
+
+  // Highlight green when price dips into buy zone (within 2% of limit)
+  if (data.price <= c.entry * 1.02) {
+    tile.style.borderColor = '#4CAF50';
+    tile.style.boxShadow   = '0 0 12px rgba(76,175,80,0.4)';
+    const entryEl = tile.querySelector('.tile-entry');
+    if (entryEl) {
+      entryEl.textContent = '🟢 IN BUY ZONE: $' + data.price.toFixed(2);
+      entryEl.className   = 'tile-entry in-position';
+    }
+  }
+
+  // Flash red when price is dangerously close to stop (within 3%)
+  if (data.price <= c.stop * 1.03) {
+    tile.style.borderColor = '#ef5350';
+    tile.style.boxShadow   = '0 0 12px rgba(239,83,80,0.5)';
+  }
+}
+
+function updateMarketContext(vixData, qqqData) {
+  if(vixData) {
+    const vix = vixData.price;
+    const vixEl = document.getElementById('vix-value');
+    vixEl.textContent = vix.toFixed(2);
+    const sigEl = document.getElementById('vix-signal');
+    if(vix < 18) {
+      vixEl.style.color = '#4CAF50';
+      sigEl.textContent = '✅ Very low — full position sizing';
+      sigEl.style.color = '#4CAF50';
+    } else if(vix < 25) {
+      vixEl.style.color = '#FFA726';
+      sigEl.textContent = '⚠ Moderate — standard sizing';
+      sigEl.style.color = '#FFA726';
+    } else if(vix < 30) {
+      vixEl.style.color = '#ef5350';
+      sigEl.textContent = '⚠ Elevated — reduce size 30%';
+      sigEl.style.color = '#ef5350';
+    } else {
+      vixEl.style.color = '#ef5350';
+      sigEl.innerHTML = '<strong>🚫 DO NOT ENTER — VIX above 30</strong>';
+      sigEl.style.color = '#ef5350';
+    }
+  }
+
+  if(qqqData) {
+    const qqqEl = document.getElementById('qqq-value');
+    qqqEl.textContent = '$' + qqqData.price.toFixed(2);
+    const sign = qqqData.change >= 0 ? '+' : '';
+    qqqEl.style.color = qqqData.change >= 0 ? '#4CAF50' : '#ef5350';
+    document.getElementById('qqq-signal').textContent =
+      `Day change: ${sign}${qqqData.changePct.toFixed(2)}%`;
+  }
+
+  // Determine scenario
+  const vix = vixData ? vixData.price : 20;
+  const qqqChg = qqqData ? qqqData.changePct : 0;
+  const scenarioEl = document.getElementById('scenario-value');
+  const actionEl   = document.getElementById('action-value');
+  const sigEl      = document.getElementById('scenario-signal');
+
+  if(vix < 20 && qqqChg > -1) {
+    scenarioEl.textContent = '🐂 BULLISH';
+    scenarioEl.style.color = '#4CAF50';
+    actionEl.textContent   = 'Full Positions';
+    actionEl.style.color   = '#4CAF50';
+    sigEl.textContent      = 'Use higher end of target ranges';
+    document.getElementById('action-signal').textContent = 'Set limits 3% below current price';
+  } else if(vix > 25 || qqqChg < -2) {
+    scenarioEl.textContent = '🐻 BEARISH';
+    scenarioEl.style.color = '#ef5350';
+    actionEl.textContent   = 'Reduce 30–40%';
+    actionEl.style.color   = '#ef5350';
+    sigEl.textContent      = 'Tighten stops, skip SHOP & TSLA';
+    document.getElementById('action-signal').textContent = 'Set limits 6–8% below current price';
+  } else {
+    scenarioEl.textContent = '😐 NEUTRAL';
+    scenarioEl.style.color = '#FFA726';
+    actionEl.textContent   = 'Standard Positions';
+    actionEl.style.color   = '#FFA726';
+    sigEl.textContent      = 'Monitor before committing';
+    document.getElementById('action-signal').textContent = 'Set limits 4–5% below current price';
+  }
+}
+
+// ── PERIOD SWITCHING ─────────────────────────────────────
+function switchPeriod(num, btn) {
+  document.querySelectorAll('.period-tab').forEach(t => {
+    t.className = 'period-tab ' + (t === btn ? 'active' : 'upcoming');
+  });
+
+  const alerts = {
+    1: '<div class="alert-item"><div class="alert-dot dot-blue"></div><div class="alert-text"><span class="alert-label">PERIOD 1 ACTIVE:</span> Phase A entry window opens April 24. Monitor all 5 candidates daily for pre-earnings dip signals.</div></div>',
+    2: '<div class="alert-item"><div class="alert-dot dot-orange"></div><div class="alert-text"><span class="alert-label">PERIOD 2 — UPCOMING:</span> Detailed plan activates June 15, 2026. Instrument expansion includes TQQQ, SOXL, FAS leveraged ETFs and bull call spreads. Ensure Level 2 options approval is active.</div></div>',
+    3: '<div class="alert-item"><div class="alert-dot dot-blue"></div><div class="alert-text"><span class="alert-label">PERIOD 3 — FUTURE:</span> Detailed plan activates September 15, 2026. Full arsenal: equities + ETFs + options + leveraged positions. Capital: Period 2 entry + 50% of Period 2 profits.</div></div>',
+  };
+  document.getElementById('alertContent').innerHTML = alerts[num] || alerts[1];
+}
+
+// ── STATUS PILL ────────────────────────────────────────────
+function updateStatus() {
+  const now = new Date();
+  const pillEl  = document.getElementById('statusPill');
+  const daysOut = Math.floor((PHASE_A_ENTRY - now) / (1000*60*60*24));
+
+  if(daysOut > 7) {
+    pillEl.textContent = 'MONITORING';
+    pillEl.className = 'status-pill status-dormant';
+  } else if(daysOut > 0) {
+    pillEl.textContent = '⚡ ENTERING SOON — ' + daysOut + 'd';
+    pillEl.className = 'status-pill status-approaching';
+  } else if(now < new Date('2026-05-22')) {
+    pillEl.textContent = '✅ PERIOD 1 ACTIVE';
+    pillEl.className = 'status-pill status-active';
+  } else {
+    pillEl.textContent = '😴 DORMANT — Awaiting Period 2';
+    pillEl.className = 'status-pill status-dormant';
+  }
+}
+
+// ── CHART FUNCTIONS ────────────────────────────────────────────────────────────
+
+// Fetch OHLCV chart data from Yahoo Finance.
+// Tries a cascade of interval/range combos so the chart always shows something:
+//   1. 30m / 5d  — preferred (intraday detail)
+//   2. 60m / 7d  — fallback if 30m is blocked
+//   3. 1d  / 60d — last resort (daily bars, always works)
+// Yahoo returns null entries for non-trading periods; we strip them before returning.
+async function fetchCandleData(ticker) {
+  const candidates = [
+    { interval: '30m', range: '5d',  label: '30-min bars · 5 days'  },
+    { interval: '60m', range: '7d',  label: '60-min bars · 7 days'  },
+    { interval: '1d',  range: '60d', label: 'Daily bars · 60 days'  },
+  ];
+  for (const cand of candidates) {
+    // Route through local proxy — host fallback is handled server-side
+    const url = `/api/yahoo?ticker=${encodeURIComponent(ticker)}`
+              + `&interval=${cand.interval}&range=${cand.range}&includePrePost=false`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        console.warn(`Chart fetch ${cand.interval}: HTTP ${resp.status}`);
+        continue;
+      }
+      const json   = await resp.json();
+      const result = json?.chart?.result?.[0];
+      if (!result?.timestamp) { console.warn('No timestamp array', cand.interval); continue; }
+      const ts = result.timestamp;
+      const q  = result.indicators.quote[0];
+      // Strip bars where any of OHLC is null (non-trading gaps)
+      const valid = ts.reduce((acc, _, i) => {
+        if (q.open[i]  != null && q.high[i] != null &&
+            q.low[i]   != null && q.close[i] != null) acc.push(i);
+        return acc;
+      }, []);
+      if (valid.length < 10) { console.warn('Too few valid bars', cand.interval, valid.length); continue; }
+      console.log(`Chart OK: ${ticker} ${cand.label} (${valid.length} bars)`);
+      return {
+        dates:    valid.map(i => new Date(ts[i] * 1000)),
+        open:     valid.map(i => q.open[i]),
+        high:     valid.map(i => q.high[i]),
+        low:      valid.map(i => q.low[i]),
+        close:    valid.map(i => q.close[i]),
+        volume:   valid.map(i => q.volume[i] || 0),
+        label:    cand.label
+      };
+    } catch(e) {
+      console.warn(`Chart fetch error ${cand.interval}:`, e.message);
+    }
+  }
+  console.error(`fetchCandleData: all sources failed for ${ticker}`);
+  return null;
+}
+
+// RSI(14) with Wilder's smoothing
+function calculateRSI(closes, period) {
+  if (!closes || closes.length < period + 1) return [];
+  const rsi = new Array(closes.length).fill(null);
+  let avgGain = 0, avgLoss = 0;
+  // Seed with simple average over first 'period' changes
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) avgGain += d; else avgLoss += Math.abs(d);
+  }
+  avgGain /= period; avgLoss /= period;
+  rsi[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  // Wilder's exponential smoothing for the rest
+  for (let i = period + 1; i < closes.length; i++) {
+    const d     = closes[i] - closes[i - 1];
+    const gain  = d >= 0 ? d : 0;
+    const loss  = d <  0 ? Math.abs(d) : 0;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+    rsi[i]  = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+  }
+  return rsi;
+}
+
+// Update the RSI readout in the modal header
+function updateRSIIndicator(rsiValues) {
+  const valid  = rsiValues.filter(v => v !== null);
+  if (!valid.length) return;
+  const latest = valid[valid.length - 1];
+  const valEl  = document.getElementById('chartRsiValue');
+  const sigEl  = document.getElementById('chartRsiSignal');
+  if (!valEl || !sigEl) return;
+  valEl.textContent = latest.toFixed(1);
+  if (latest >= 70) {
+    valEl.style.color  = '#ef5350';
+    sigEl.textContent  = 'OVERBOUGHT';
+    sigEl.className    = 'rsi-readout-signal rsi-overbought';
+  } else if (latest <= 30) {
+    valEl.style.color  = '#4CAF50';
+    sigEl.textContent  = 'OVERSOLD';
+    sigEl.className    = 'rsi-readout-signal rsi-oversold';
+  } else {
+    valEl.style.color  = '#FFA726';
+    sigEl.textContent  = latest < 50 ? 'COOLING' : 'WARMING';
+    sigEl.className    = 'rsi-readout-signal rsi-neutral';
+  }
+}
+
+// Build and render the 3-panel Plotly chart (candles / volume / RSI)
+function renderChart(ticker, data) {
+  const c   = ROSTER[ticker] || {};
+  const rsi = calculateRSI(data.close, 14);
+  updateRSIIndicator(rsi);
+
+  const dates = data.dates;
+  const xEnd  = dates[dates.length - 1];
+  const xStart = dates[0];
+
+  // ── Horizontal price reference lines (candle panel) ──
+  const shapes = [];
+  const lineTraces = [];
+  const levelDefs = [
+    { key: 'entry', color: '#BF6900', dash: 'dash',    label: `Limit Buy $${c.entry}` },
+    { key: 'stop',  color: '#ef5350', dash: 'dot',     label: `Stop $${c.stop}` },
+    { key: 't1',    color: '#4CAF50', dash: 'dashdot', label: `T1 $${c.t1}` }
+  ];
+  levelDefs.forEach(def => {
+    if (!c[def.key]) return;
+    shapes.push({
+      type: 'line', xref: 'x', yref: 'y',
+      x0: xStart, x1: xEnd, y0: c[def.key], y1: c[def.key],
+      line: { color: def.color, width: 1.5, dash: def.dash }
+    });
+    // invisible scatter for legend entry
+    lineTraces.push({
+      type: 'scatter', mode: 'lines', name: def.label, showlegend: true,
+      x: [xStart, xEnd], y: [c[def.key], c[def.key]],
+      line: { color: def.color, width: 1.5, dash: def.dash },
+      xaxis: 'x', yaxis: 'y', hoverinfo: 'none'
+    });
+  });
+
+  // ── RSI reference bands ──
+  [
+    { y0: 70, y1: 100, fill: 'rgba(239,83,80,0.07)',  line: { color:'rgba(239,83,80,0.5)', width:1, dash:'dash' }, lineY: 70 },
+    { y0:  0, y1:  30, fill: 'rgba(76,175,80,0.07)',  line: { color:'rgba(76,175,80,0.5)',  width:1, dash:'dash' }, lineY: 30 }
+  ].forEach(band => {
+    shapes.push({ type:'rect',  xref:'x', yref:'y3', x0:xStart, x1:xEnd, y0:band.y0, y1:band.y1, fillcolor:band.fill, line:{width:0}, layer:'below' });
+    shapes.push({ type:'line',  xref:'x', yref:'y3', x0:xStart, x1:xEnd, y0:band.lineY, y1:band.lineY, line:band.line });
+  });
+
+  // ── Traces ──
+  const candleTrace = {
+    type: 'candlestick', name: ticker,
+    x: dates, open: data.open, high: data.high, low: data.low, close: data.close,
+    increasing: { line: { color: '#4CAF50', width: 1 }, fillcolor: 'rgba(76,175,80,0.7)' },
+    decreasing: { line: { color: '#ef5350', width: 1 }, fillcolor: 'rgba(239,83,80,0.7)' },
+    xaxis: 'x', yaxis: 'y',
+    hovertemplate: 'O: $%{open:.2f}  H: $%{high:.2f}  L: $%{low:.2f}  C: $%{close:.2f}<extra></extra>'
+  };
+
+  const volColors = data.close.map((cl, i) =>
+    (cl >= (data.open[i] ?? cl)) ? 'rgba(76,175,80,0.45)' : 'rgba(239,83,80,0.45)');
+  const volumeTrace = {
+    type: 'bar', name: 'Volume',
+    x: dates, y: data.volume,
+    marker: { color: volColors },
+    xaxis: 'x', yaxis: 'y2',
+    hovertemplate: 'Vol: %{y:,.0f}<extra></extra>'
+  };
+
+  const rsiTrace = {
+    type: 'scatter', mode: 'lines', name: 'RSI(14)',
+    x: dates, y: rsi,
+    line: { color: '#42A5F5', width: 1.8 },
+    xaxis: 'x', yaxis: 'y3',
+    hovertemplate: 'RSI: %{y:.1f}<extra></extra>'
+  };
+
+  const layout = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(13,27,46,0.75)',
+    font:   { color: '#e0e8f0', family: 'Arial,sans-serif', size: 11 },
+    margin: { l: 72, r: 24, t: 16, b: 36 },
+    hovermode: 'x unified',
+    hoverlabel: { bgcolor: '#0d1b2e', bordercolor: '#2E75B6', font: { color: '#e0e8f0', size: 11 } },
+    xaxis: {
+      rangeslider: { visible: false },
+      gridcolor:   'rgba(46,117,182,0.12)', zeroline: false,
+      tickfont:    { color: '#8eaacf', size: 10 },
+      domain: [0, 1]
+    },
+    yaxis: {
+      title: { text: 'Price ($)', font: { color: '#8eaacf', size: 10 } },
+      gridcolor: 'rgba(46,117,182,0.15)', zeroline: false,
+      tickfont:  { color: '#e0e8f0', size: 10 }, tickformat: '$.2f',
+      domain: [0.38, 1], anchor: 'x'
+    },
+    yaxis2: {
+      title: { text: 'Volume', font: { color: '#8eaacf', size: 10 } },
+      gridcolor: 'rgba(46,117,182,0.1)', zeroline: false,
+      tickfont:  { color: '#8eaacf', size: 9 },
+      domain: [0.21, 0.36], anchor: 'x'
+    },
+    yaxis3: {
+      title: { text: 'RSI(14)', font: { color: '#8eaacf', size: 10 } },
+      range: [0, 100], gridcolor: 'rgba(46,117,182,0.1)', zeroline: false,
+      tickfont: { color: '#8eaacf', size: 9 }, tickvals: [30, 50, 70],
+      domain: [0, 0.19], anchor: 'x'
+    },
+    legend: {
+      bgcolor: 'rgba(13,27,46,0.65)', bordercolor: 'rgba(46,117,182,0.3)', borderwidth: 1,
+      font: { color: '#8eaacf', size: 10 }, x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top'
+    },
+    shapes,
+    autosize: true   // lets Plotly fill whatever pixel size the container actually has
+  };
+
+  const config = {
+    responsive: true, displayModeBar: true, displaylogo: false,
+    modeBarButtonsToRemove: ['toImage','sendDataToCloud','lasso2d','select2d','autoScale2d']
+  };
+
+  // Purge any previous chart first so newPlot always starts clean
+  const plotEl = document.getElementById('chartPlot');
+  try { Plotly.purge(plotEl); } catch(e) {}
+  plotEl.innerHTML = '';
+
+  Plotly.newPlot('chartPlot', [candleTrace, volumeTrace, rsiTrace, ...lineTraces], layout, config);
+
+  // Force a resize after layout has fully settled
+  setTimeout(() => {
+    try { Plotly.Plots.resize(plotEl); } catch(e) {}
+  }, 150);
+}
+
+// Load chart data and render — shows loading state while fetching
+async function loadChartData(ticker) {
+  const plot    = document.getElementById('chartPlot');
+  const sub     = document.getElementById('chartModalSubtitle');
+  if (plot) plot.innerHTML = `<div class="chart-loading">📡 Fetching chart data for ${ticker}…<br>
+    <span style="font-size:12px;color:#556;margin-top:6px;display:block;">Trying 30-min → 60-min → daily as needed</span></div>`;
+  document.getElementById('chartRsiValue').textContent  = '—';
+  document.getElementById('chartRsiSignal').textContent = 'Loading';
+  document.getElementById('chartRsiSignal').className   = 'rsi-readout-signal rsi-neutral';
+
+  const data = await fetchCandleData(ticker);
+  if (!data || !data.close || !data.close.length) {
+    if (plot) plot.innerHTML = `
+      <div class="chart-loading" style="flex-direction:column;gap:16px;">
+        <div style="color:#ef5350;font-size:18px;">⚠ Chart data unavailable</div>
+        <div style="color:#8eaacf;font-size:13px;max-width:480px;text-align:center;line-height:1.6;">
+          All Yahoo Finance intervals failed for <strong>${ticker}</strong>.<br>
+          This usually means the API is temporarily rate-limiting this browser session.<br>
+          Check the browser console (F12 → Console) for details.
+        </div>
+        <button class="refresh-btn" onclick="loadChartData('${ticker}')">⟳ Retry</button>
+      </div>`;
+    return;
+  }
+  // Update subtitle to show which resolution actually loaded
+  if (sub) sub.textContent = `${data.label} · Candlestick + Volume + RSI(14) · Auto-refreshes every 5 min`;
+  renderChart(ticker, data);
+}
+
+// Called by refreshPrices() — silently re-renders open chart with fresh data
+// Uses renderChart which now does purge+newPlot, keeping it consistent
+async function refreshChart() {
+  if (!currentChartTicker) return;
+  const data = await fetchCandleData(currentChartTicker);
+  if (data && data.close && data.close.length) {
+    const sub = document.getElementById('chartModalSubtitle');
+    if (sub) sub.textContent = `${data.label} · Candlestick + Volume + RSI(14) · Updated ${new Date().toLocaleTimeString()}`;
+    renderChart(currentChartTicker, data);
+  }
+}
+
+// Open the chart modal for a given ticker
+function openChart(ticker) {
+  if (!ROSTER[ticker]) return;
+  currentChartTicker = ticker;
+  const c = ROSTER[ticker];
+  document.getElementById('chartModalTitle').textContent = `${ticker} — ${c.name}`;
+  document.getElementById('chartModal').classList.add('show');
+  // Small delay lets the browser paint the modal at its final size before
+  // we kick off the fetch + render — avoids the height-0 Plotly blank render.
+  setTimeout(() => loadChartData(ticker), 50);
+}
+
+// Close the chart modal and free Plotly memory
+function closeChart() {
+  document.getElementById('chartModal').classList.remove('show');
+  currentChartTicker = null;
+  try { Plotly.purge('chartPlot'); } catch(e) {}
+  document.getElementById('chartPlot').innerHTML = '';
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function initDashboard() {
+  buildStockGrid();           // Generate tiles from ROSTER
+  buildPositionRows();        // Generate position tracker rows from ROSTER
+  buildPriceMaps();           // Sync price lookup maps
+  updateStatus();
+  updateCountdown();
+  updateProgressBar();        // Date-driven progress bar
+  updateTimelineDots();       // Mark past/current/future timeline items
+  updateRecommendations();    // Date-driven recommendations
+  setInterval(updateCountdown, 1000);
+  setInterval(updateStatus, 60000);
+  // Re-run date-driven sections once per minute (handles midnight rollover)
+  setInterval(() => {
+    updateProgressBar();
+    updateTimelineDots();
+    updateRecommendations();
+  }, 60000);
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+  refreshPrices();
+  setInterval(refreshPrices, 5 * 60 * 1000); // Auto-refresh every 5 minutes
+}
+
+window.addEventListener('load', () => {
+  // Detect file:// origin — all Yahoo Finance fetch calls will be CORS-blocked
+  if (window.location.protocol === 'file:') {
+    const warn = document.getElementById('corsWarning');
+    if (warn) warn.style.display = 'flex';
+  }
+  checkDormant();
+  initDashboard();
+});
+</script>
+</body>
+</html>
