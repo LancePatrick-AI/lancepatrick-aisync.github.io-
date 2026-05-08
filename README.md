@@ -37,7 +37,6 @@ A seven-layer resilient verification architecture addressing the single point of
 ---
 
 *Additional projects will appear here as they are released.*
-- New Swing Trading Side Project: [https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/2026_Earnings_Swing_Trading_Dashboard.html](https://lancepatrick-ai.github.io/lancepatrick-aisync.github.io-/2026_Earnings_Swing_Trading_Dashboard.html)
   
 ---
 
